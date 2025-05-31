@@ -1,63 +1,103 @@
+import { PrismaClient } from "@prisma/client";
 import { User } from "./user.model.js";
 
-import type { UpdateUser } from "./user.service.js";
+import type {
+  CreateUser,
+  IUserRepository,
+  UpdateUser,
+} from "./user.service.js";
+import { hash } from "node:crypto";
 
 const userTable = new Map<number, User>();
 
-export default class UserRepository {
-  constructor() {}
+export default class UserRepository implements IUserRepository {
+  constructor(private prisma: PrismaClient) {}
 
   async getUserList(): Promise<User[]> {
-    return Array.from(userTable.values());
+    return (await this.prisma.user.findMany({
+      select: {
+        password: false,
+      },
+    })) as unknown as User[];
   }
 
-  async createUser(
-    user: Omit<User, "id" | "createdAt" | "updatedAt">
-  ): Promise<User | null> {
-    const id = userTable.size + 1;
+  async createUser(user: CreateUser): Promise<User | null> {
+    const createdUser = await this.prisma.user.create({
+      data: {
+        birthDate: user.birthDate,
+        email: user.email,
+        password: await hash(user.password, "sha256"),
+        name: user.name,
+        gender: user.gender,
+        phone: user.phone,
+        telegramId: user.telegramId,
+        telegramUsername: user.telegramUsername,
+        avatar: user.avatar,
+        city: user.city,
+        country: user.country,
+        isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        isTelegramVerified: user.isTelegramVerified,
+      },
+      select: {
+        password: false,
+      },
+    });
 
-    userTable.set(
-      id,
-      Object.assign(user, {
-        id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    );
-
-    return userTable.get(id) || null;
+    return createdUser as unknown as User;
   }
 
   async getUser(id: number): Promise<User | null> {
-    return userTable.has(id) ? (userTable.get(id) as User) : null;
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        password: false,
+      },
+    });
+
+    return user as unknown as User | null;
   }
 
   async updateUser(user: UpdateUser): Promise<User | null> {
-    const prevUser = userTable.get(user.id);
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        birthDate: user.birthDate,
+        email: user.email,
+        password: await hash(user.password, "sha256"),
+        name: user.name,
+        gender: user.gender,
+        phone: user.phone,
+        telegramId: user.telegramId,
+        telegramUsername: user.telegramUsername,
+        avatar: user.avatar,
+        city: user.city,
+        country: user.country,
+        isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        isTelegramVerified: user.isTelegramVerified,
+      },
+      select: {
+        password: false,
+      },
+    });
 
-    if (prevUser) {
-      userTable.set(
-        user.id,
-        Object.assign(
-          prevUser,
-          Object.assign(user, {
-            updatedAt: new Date().toISOString(),
-          })
-        )
-      );
-
-      return userTable.get(user.id) as User;
-    }
-
-    return null;
+    return updatedUser as unknown as User | null;
   }
 
   async deleteUser(id: number): Promise<number | null> {
-    if (!userTable.has(id)) {
+    const deletedUser = await this.prisma.user.delete({
+      where: { id },
+      select: {
+        password: false,
+      },
+    });
+
+    if (!deletedUser) {
       return null;
     }
-
-    userTable.delete(id);
 
     return id;
   }

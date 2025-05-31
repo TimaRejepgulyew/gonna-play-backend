@@ -18,8 +18,8 @@ export class User {
   telegramId?: string;
   telegramUsername?: string;
 
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 
   constructor(user: User) {
     this.id = user.id;
@@ -75,4 +75,3 @@ export const updateUserSchema = Type.Object({
   telegramId: Type.Optional(Type.String()),
   telegramUsername: Type.Optional(Type.String()),
 });
-

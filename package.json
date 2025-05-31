@@ -11,7 +11,14 @@
     "lint": "eslint --ext .ts src/",
     "test": "jest",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:create": "prisma migrate dev --create-only",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:reset": "prisma migrate reset",
+    "prisma:migrate:status": "prisma migrate status",
+    "prisma:migrate:resolve": "prisma migrate resolve",
+    "prisma:db:push": "prisma db push",
+    "prisma:db:seed": "prisma db seed"
   },
   "repository": {
     "type": "git",

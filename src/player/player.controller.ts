@@ -1,9 +1,30 @@
+import { Logger } from "pino";
+
+import PlayerRepository from "./player.repository.js";
 import { CreatePlayer, PlayerService, UpdatePlayer } from "./player.service.js";
 
+import prisma from "@/config/prisma.js";
+import UserRepository from "../user/user.repository.js";
+import UserService from "../user/user.service.js";
+
+import type { FastifyInstance } from "fastify";
 export class PlayerController {
   private playerService: PlayerService;
-  constructor() {
-    this.playerService = new PlayerService();
+  private playerRepository: PlayerRepository;
+
+  private userService: UserService;
+
+  constructor(
+    _server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  ) {
+    this.playerRepository = new PlayerRepository(prisma);
+    const userRepository = new UserRepository(prisma);
+
+    this.userService = new UserService(userRepository);
+    this.playerService = new PlayerService(
+      this.playerRepository,
+      this.userService
+    );
   }
 
   getPlayerList() {
@@ -15,7 +36,6 @@ export class PlayerController {
   }
 
   getPlayer(req: { params: { id: string } }) {
-    console.log(req.params.id);
     return this.playerService.getPlayer(Number(req.params.id));
   }
 

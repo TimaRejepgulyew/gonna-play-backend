@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,4 +7,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Add your data models here later
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id                 Int      @id @default(autoincrement())
+  avatar             String?
+  birthDate          String
+  city               String?
+  country            String?
+  email              String   @unique
+  gender             String?
+  isActive           Boolean? @default(true)
+  isEmailVerified    Boolean? @default(false)
+  isPhoneVerified    Boolean? @default(false)
+  isTelegramVerified Boolean? @default(false)
+  name               String?
+  password           String
+  phone              String?
+  telegramId         String?
+  telegramUsername   String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  player             Player?
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  roleId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Player {
+  id        Int              @id @default(autoincrement())
+  name      String
+  level     PLAYER_LEVEL?
+  position  PLAYER_POSITION?
+  status    PLAYER_STATUS?
+  userId    Int?             @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User?            @relation(fields: [userId], references: [id])
+}
+
+enum PLAYER_LEVEL {
+  Junior @map("junior")
+  Legend @map("legend")
+  Middle @map("middle")
+  Senior @map("senior")
+}
+
+enum PLAYER_POSITION {
+  Defender   @map("defender")
+  Forward    @map("forward")
+  Goalkeeper @map("goalkeeper")
+  Midfielder @map("midfielder")
+}
+
+enum PLAYER_STATUS {
+  Active   @map("active")
+  Inactive @map("inactive")
+}

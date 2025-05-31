@@ -1,3 +1,4 @@
+import { Prisma, PrismaClient } from "@prisma/client";
 import Player from "./player.model.js";
 
 import type {
@@ -9,25 +10,29 @@ import type {
 const playerTable = new Map<number, Player>();
 
 export default class PlayerRepository implements IPlayerRepository {
-  constructor() {}
+  constructor(private prisma: PrismaClient) {}
 
   async getPlayerList(): Promise<Player[]> {
-    return Array.from(playerTable.values());
+    const players = (await this.prisma.player.findMany({
+      include: {
+        user: true,
+      },
+    })) as unknown as Player[];
+
+    return players;
   }
 
-  async createPlayer(player: Omit<CreatePlayer, "user">): Promise<Player> {
-    const id = playerTable.size + 1;
+  async createPlayer(player: CreatePlayer): Promise<Player> {
+    const newPlayer = await this.prisma.player.create({
+      data: {
+        name: player.name,
+        userId: player.userId,
+        level: player.level,
+        position: player.position,
+      },
+    });
 
-    playerTable.set(
-      id,
-      Object.assign(player, {
-        id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    );
-
-    return playerTable.get(id) as Player;
+    return newPlayer as unknown as Player;
   }
 
   async getPlayer(id: number): Promise<Player | null> {

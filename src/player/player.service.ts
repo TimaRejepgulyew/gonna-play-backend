@@ -6,6 +6,7 @@ import UserService, {
   type CreateUser,
   type UpdateUser,
 } from "@/user/user.service.js";
+import { Prisma } from "@prisma/client";
 
 export interface CreatePlayer
   extends Omit<Player, "id" | "createdAt" | "updatedAt" | "user"> {
@@ -26,14 +27,12 @@ export interface IPlayerRepository {
 }
 
 export class PlayerService {
-  private playerRepository: PlayerRepository;
-  private userService: UserService;
-  constructor() {
-    this.playerRepository = new PlayerRepository();
-    this.userService = new UserService();
-  }
+  constructor(
+    private playerRepository: PlayerRepository,
+    private userService: UserService
+  ) {}
 
-  getPlayerList(): Promise<Player[]> {
+  getPlayerList() {
     return this.playerRepository.getPlayerList();
   }
 
@@ -54,9 +53,11 @@ export class PlayerService {
       throw errorCodes.FST_ERR_NOT_FOUND;
     }
 
-    const createdPlayer = await this.playerRepository.createPlayer(player);
+    const createdPlayer = await this.playerRepository.createPlayer(
+      Object.assign(player, { userId: user.id, user })
+    );
 
-    return new Player(Object.assign(createdPlayer, { user, userId: user.id }));
+    return new Player(createdPlayer);
   }
 
   async getPlayer(id: number): Promise<Player | null> {

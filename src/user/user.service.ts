@@ -1,6 +1,5 @@
 import { errorCodes } from "fastify";
 import { User } from "./user.model.js";
-import UserRepository from "./user.repository.js";
 
 export interface IUserRepository {
   createUser(user: CreateUser): Promise<User | null>;
@@ -15,10 +14,7 @@ export interface CreateUser
 export interface UpdateUser extends Omit<User, "createdAt" | "updatedAt"> {}
 
 export default class UserService {
-  private userRepository: UserRepository;
-  constructor() {
-    this.userRepository = new UserRepository();
-  }
+  constructor(private userRepository: IUserRepository) {}
 
   async createUser(user: CreateUser): Promise<User> {
     const createdUser = await this.userRepository.createUser(user);

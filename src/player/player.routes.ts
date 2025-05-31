@@ -7,7 +7,7 @@ import type { Logger } from "pino";
 export default async function playerRoutes(
   server: FastifyInstance<any, any, any, Logger, any, any, any, any>
 ) {
-  const playerController = new PlayerController();
+  const playerController = new PlayerController(server);
 
   server.delete("/:id", playerController.deletePlayer.bind(playerController));
 

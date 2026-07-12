@@ -18,7 +18,9 @@
     "prisma:migrate:status": "prisma migrate status",
     "prisma:migrate:resolve": "prisma migrate resolve",
     "prisma:db:push": "prisma db push",
-    "prisma:db:seed": "prisma db seed"
+    "prisma:db:seed": "tsx prisma/seeds/seed.ts",
+    "prisma:studio": "prisma studio",
+    "prisma:format": "prisma format"
   },
   "repository": {
     "type": "git",
@@ -59,5 +61,6 @@
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

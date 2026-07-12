@@ -1,76 +1,97 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 model Role {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    id        Int      @id @default(autoincrement())
+    name      String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    userRoles UserRole[]
+
+    @@map("roles")
 }
 
 model User {
-  id                 Int      @id @default(autoincrement())
-  avatar             String?
-  birthDate          String
-  city               String?
-  country            String?
-  email              String   @unique
-  gender             String?
-  isActive           Boolean? @default(true)
-  isEmailVerified    Boolean? @default(false)
-  isPhoneVerified    Boolean? @default(false)
-  isTelegramVerified Boolean? @default(false)
-  name               String?
-  password           String
-  phone              String?
-  telegramId         String?
-  telegramUsername   String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  player             Player?
+    id                 Int      @id @default(autoincrement())
+    avatar             String?
+    birthDate          String
+    city               String?
+    country            String?
+    email              String   @unique
+    gender             String?
+    isActive           Boolean? @default(true)
+    isEmailVerified    Boolean? @default(false)
+    isPhoneVerified    Boolean? @default(false)
+    isTelegramVerified Boolean? @default(false)
+    name               String?
+    password           String
+    phone              String?
+    telegramId         String?
+    telegramUsername   String?
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+
+    // Relations
+    player    Player?
+    userRoles UserRole[]
+
+    @@map("users")
 }
 
 model UserRole {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  roleId    Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    id        Int      @id @default(autoincrement())
+    userId    Int
+    roleId    Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, roleId])
+    @@map("user_roles")
 }
 
 model Player {
-  id        Int              @id @default(autoincrement())
-  name      String
-  level     PLAYER_LEVEL?
-  position  PLAYER_POSITION?
-  status    PLAYER_STATUS?
-  userId    Int?             @unique
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  user      User?            @relation(fields: [userId], references: [id])
+    id        Int              @id @default(autoincrement())
+    name      String
+    level     PLAYER_LEVEL?
+    position  PLAYER_POSITION?
+    status    PLAYER_STATUS?   @default(ACTIVE)
+    userId    Int?             @unique
+    createdAt DateTime         @default(now())
+    updatedAt DateTime         @updatedAt
+
+    // Relations
+    user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+    @@map("players")
 }
 
 enum PLAYER_LEVEL {
-  Junior @map("junior")
-  Legend @map("legend")
-  Middle @map("middle")
-  Senior @map("senior")
+    JUNIOR @map("junior")
+    MIDDLE @map("middle")
+    SENIOR @map("senior")
+    LEGEND @map("legend")
 }
 
 enum PLAYER_POSITION {
-  Defender   @map("defender")
-  Forward    @map("forward")
-  Goalkeeper @map("goalkeeper")
-  Midfielder @map("midfielder")
+    GOALKEEPER @map("goalkeeper")
+    DEFENDER   @map("defender")
+    MIDFIELDER @map("midfielder")
+    FORWARD    @map("forward")
 }
 
 enum PLAYER_STATUS {
-  Active   @map("active")
-  Inactive @map("inactive")
+    ACTIVE   @map("active")
+    INACTIVE @map("inactive")
 }

@@ -1,15 +1,13 @@
-import { Prisma } from "@prisma/client";
-
 export enum PLAYER_POSITION {
-  Goalkeeper = "Goalkeeper",
-  Defender = "Defender",
-  Midfielder = "Midfielder",
-  Forward = "Forward",
+  Goalkeeper = "GOALKEEPER",
+  Defender = "DEFENDER",
+  Midfielder = "MIDFIELDER",
+  Forward = "FORWARD",
 }
 
 export enum PLAYER_LEVEL {
-  Junior = "Junior",
-  Middle = "Middle",
-  Senior = "Senior",
-  Legend = "Legend",
+  Junior = "JUNIOR",
+  Middle = "MIDDLE",
+  Senior = "SENIOR",
+  Legend = "LEGEND",
 }

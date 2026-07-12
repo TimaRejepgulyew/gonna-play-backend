@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import Player from "./player.model.js";
 
 import type {
@@ -6,6 +6,7 @@ import type {
   CreatePlayer,
   UpdatePlayer,
 } from "./player.service.js";
+import { errorCodes } from "fastify";
 
 const playerTable = new Map<number, Player>();
 

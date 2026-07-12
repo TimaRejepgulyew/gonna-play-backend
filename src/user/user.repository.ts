@@ -1,14 +1,30 @@
+import { randomBytes, pbkdf2Sync } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+
 import { User } from "./user.model.js";
 
-import type {
-  CreateUser,
-  IUserRepository,
-  UpdateUser,
-} from "./user.service.js";
-import { hash } from "node:crypto";
+import type { IUserRepository } from "./user.service.js";
+import type { CreateUser, UpdateUser } from "./types.js";
 
-const userTable = new Map<number, User>();
+const SALT_LENGTH = 16;
+const HASH_ITERATIONS = 100_000;
+const HASH_ALGO = "sha256";
+const HASH_LENGTH = 64;
+
+function hashPassword(
+  password: string,
+  salt?: string
+): { hash: string; salt: string } {
+  const usedSalt = salt || randomBytes(SALT_LENGTH).toString("hex");
+  const hash = pbkdf2Sync(
+    password,
+    usedSalt,
+    HASH_ITERATIONS,
+    HASH_LENGTH,
+    HASH_ALGO
+  ).toString("hex");
+  return { hash, salt: usedSalt };
+}
 
 export default class UserRepository implements IUserRepository {
   constructor(private prisma: PrismaClient) {}
@@ -21,31 +37,32 @@ export default class UserRepository implements IUserRepository {
     })) as unknown as User[];
   }
 
-  async createUser(user: CreateUser): Promise<User | null> {
-    const createdUser = await this.prisma.user.create({
-      data: {
-        birthDate: user.birthDate,
-        email: user.email,
-        password: await hash(user.password, "sha256"),
-        name: user.name,
-        gender: user.gender,
-        phone: user.phone,
-        telegramId: user.telegramId,
-        telegramUsername: user.telegramUsername,
-        avatar: user.avatar,
-        city: user.city,
-        country: user.country,
-        isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
-        isTelegramVerified: user.isTelegramVerified,
-      },
+  async getUserByEmail(email: string): Promise<User | null> {
+    return  this.prisma.user.findUnique({
+      where: { email },
       select: {
         password: false,
       },
-    });
+    }) as unknown as User | null;
+  }
 
-    return createdUser as unknown as User;
+  async createUser(user: CreateUser): Promise<User | null> {
+    try {
+
+      const createdUser = await this.prisma.user.create({
+        data: {
+          birthDate: user.birthDate,
+          email: user.email,
+          gender: user.gender,
+          name: user.name,
+          password: hashPassword(user.password).hash,
+        },
+      });
+      return createdUser as unknown as User;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
   }
 
   async getUser(id: number): Promise<User | null> {
@@ -65,7 +82,6 @@ export default class UserRepository implements IUserRepository {
       data: {
         birthDate: user.birthDate,
         email: user.email,
-        password: await hash(user.password, "sha256"),
         name: user.name,
         gender: user.gender,
         phone: user.phone,

@@ -10,20 +10,16 @@ import UserService from "../user/user.service.js";
 import type { FastifyInstance } from "fastify";
 export class PlayerController {
   private playerService: PlayerService;
-  private playerRepository: PlayerRepository;
-
-  private userService: UserService;
 
   constructor(
     _server: FastifyInstance<any, any, any, Logger, any, any, any, any>
   ) {
-    this.playerRepository = new PlayerRepository(prisma);
+    const playerRepository = new PlayerRepository(prisma);
     const userRepository = new UserRepository(prisma);
-
-    this.userService = new UserService(userRepository);
     this.playerService = new PlayerService(
-      this.playerRepository,
-      this.userService
+      playerRepository,
+      userRepository,
+      _server.log
     );
   }
 

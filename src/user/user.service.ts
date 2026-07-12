@@ -1,27 +1,39 @@
 import { errorCodes } from "fastify";
+
+import { errorCodes as userErrorCodes } from "@/constants/index.js";
 import { User } from "./user.model.js";
+
+import type { ErrorResponse } from "@/types/prisma.js";
+import type { CreateUser, UpdateUser } from "./types.js";
 
 export interface IUserRepository {
   createUser(user: CreateUser): Promise<User | null>;
-  getUser(id: number): Promise<User | null>;
-  updateUser(user: UpdateUser): Promise<User | null>;
   deleteUser(id: number): Promise<number | null>;
+  getUser(id: number): Promise<User | null>;
+  getUserByEmail(email: string): Promise<User | null>;
+  updateUser(user: UpdateUser): Promise<User | null>;
 }
-
-export interface CreateUser
-  extends Omit<User, "id" | "createdAt" | "updatedAt"> {}
-
-export interface UpdateUser extends Omit<User, "createdAt" | "updatedAt"> {}
 
 export default class UserService {
   constructor(private userRepository: IUserRepository) {}
 
-  async createUser(user: CreateUser): Promise<User> {
-    const createdUser = await this.userRepository.createUser(user);
-    if (!createdUser) {
-      throw errorCodes.FST_ERR_NOT_FOUND();
+  async createUser(user: CreateUser): Promise<User | ErrorResponse> {
+    try {
+      const existingUser = await this.userRepository.getUserByEmail?.(
+        user.email
+      );
+      if (existingUser) {
+        return userErrorCodes.USER_EMAIL_DUPLICATED;
+      }
+
+      const createdUser = await this.userRepository.createUser(user);
+      if (!createdUser) {
+        return userErrorCodes.USER_NOT_CREATED;
+      }
+      return new User(createdUser);
+    } catch (error) {
+      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER;
     }
-    return createdUser;
   }
 
   async getUser(id: number): Promise<User> {

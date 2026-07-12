@@ -1,12 +1,13 @@
 import { errorCodes } from "fastify";
+import { errorCodes as userErrorCodes } from "@/constants/index.js";
 import { User } from "@/user/user.model.js";
+import UserRepository from "@/user/user.repository.js";
 import Player from "./player.model.js";
 import PlayerRepository from "./player.repository.js";
-import UserService, {
-  type CreateUser,
-  type UpdateUser,
-} from "@/user/user.service.js";
-import { Prisma } from "@prisma/client";
+
+import type { ErrorResponse } from "@/types/prisma.js";
+import type { CreateUser, UpdateUser } from "@/user/types.js";
+import { Logger } from "pino";
 
 export interface CreatePlayer
   extends Omit<Player, "id" | "createdAt" | "updatedAt" | "user"> {
@@ -29,35 +30,62 @@ export interface IPlayerRepository {
 export class PlayerService {
   constructor(
     private playerRepository: PlayerRepository,
-    private userService: UserService
+    private userRepository: UserRepository,
+    private logger: Logger
   ) {}
 
   getPlayerList() {
     return this.playerRepository.getPlayerList();
   }
 
-  async createPlayer(player: CreatePlayer): Promise<Player | null> {
+  async createPlayer(player: CreatePlayer): Promise<Player | ErrorResponse> {
     let user: User | null = null;
+    try {
+      if (!player.userId && player.user) {
+        const hasDuplicateEmail = await this.userRepository.getUserByEmail(
+          player.user.email
+        );
 
-    if (!player.userId && player.user) {
-      user = await this.userService.createUser(player.user);
-    } else {
-      if (player.userId) {
-        user = await this.userService.getUser(player.userId);
+        if (hasDuplicateEmail) {
+          this.logger.error(
+            `User with email ${player.user.email} already exists`
+          );
+          return userErrorCodes.USER_EMAIL_DUPLICATED;
+        }
+
+        user = await this.userRepository.createUser(player.user);
       } else {
-        throw errorCodes.FST_ERR_REQ_INVALID_VALIDATION_INVOCATION;
+        if (player.userId) {
+          user = await this.userRepository.getUser(player.userId);
+        } else {
+          this.logger.error(`User with id ${player.userId} not found`);
+          throw userErrorCodes.USER_NOT_CREATED;
+        }
       }
+    } catch (error) {
+      this.logger.error(error);
+      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER;
     }
 
     if (!user) {
-      throw errorCodes.FST_ERR_NOT_FOUND;
+      const errorMessage = player.userId
+        ? userErrorCodes.USER_NOT_FOUND
+        : userErrorCodes.USER_NOT_CREATED;
+
+      this.logger.error(errorMessage);
+      return errorMessage;
     }
 
-    const createdPlayer = await this.playerRepository.createPlayer(
-      Object.assign(player, { userId: user.id, user })
-    );
+    try {
+      const createdPlayer = await this.playerRepository.createPlayer(
+        Object.assign(player, { userId: user.id, user })
+      );
 
-    return new Player(createdPlayer);
+      return new Player(createdPlayer);
+    } catch (error) {
+      this.logger.error(error);
+      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER;
+    }
   }
 
   async getPlayer(id: number): Promise<Player | null> {
@@ -71,7 +99,7 @@ export class PlayerService {
       throw errorCodes.FST_ERR_NOT_FOUND();
     }
 
-    const user = await this.userService.getUser(player.userId);
+    const user = await this.userRepository.getUser(player.userId);
 
     return new Player(Object.assign(player, { user }));
   }
@@ -79,9 +107,9 @@ export class PlayerService {
   async updatePlayer(player: UpdatePlayer): Promise<Player | null> {
     let user: User | null = null;
     if (player.user && player.userId) {
-      user = await this.userService.getUser(player.userId);
+      user = await this.userRepository.getUser(player.userId);
 
-      await this.userService.updateUser(player.user);
+      await this.userRepository.updateUser(player.user);
 
       if (!user) {
         throw errorCodes.FST_ERR_NOT_FOUND();

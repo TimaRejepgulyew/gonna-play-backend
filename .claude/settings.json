@@ -1,0 +1,5 @@
+{
+  "enabledPlugins": {
+    "nodejs-development@dev-claude-plugins": true
+  }
+}

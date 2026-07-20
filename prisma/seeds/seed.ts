@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client'
 
+import { hashToStorage } from '../../src/auth/password.js'
+
 const prisma = new PrismaClient()
+
+// Seeded credentials (plaintext for local use). Stored as `salt:hash` via the
+// same helper the auth flow uses, so the seeded admin can actually log in.
+const ADMIN_PASSWORD = hashToStorage('Admin123!')
+const PLAYER_PASSWORD = hashToStorage('Player123!')
 
 async function main() {
   console.log('🌱 Starting seed...')
@@ -35,10 +42,10 @@ async function main() {
   // Create admin user
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@gonnaplay.com' },
-    update: {},
+    update: { password: ADMIN_PASSWORD },
     create: {
       email: 'admin@gonnaplay.com',
-      password: 'hashedpassword123', // In real app, hash this password
+      password: ADMIN_PASSWORD,
       name: 'Admin User',
       birthDate: '1990-01-01',
       isActive: true,
@@ -49,10 +56,10 @@ async function main() {
   // Create player user
   const playerUser = await prisma.user.upsert({
     where: { email: 'player1@gonnaplay.com' },
-    update: {},
+    update: { password: PLAYER_PASSWORD },
     create: {
       email: 'player1@gonnaplay.com',
-      password: 'hashedpassword123',
+      password: PLAYER_PASSWORD,
       name: 'John Striker',
       birthDate: '1995-05-15',
       city: 'New York',

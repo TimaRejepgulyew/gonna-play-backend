@@ -4,14 +4,24 @@ services:
   backend:
     build: .
     ports:
-      - '3000:3000'
+      - '${BACKEND_PORT:-3000}:3000'
     environment:
       - NODE_ENV=production
+      # Inside the container the server must bind beyond loopback for the
+      # published port to work.
+      - HOST=0.0.0.0
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/gonna_play_db
+      - REDIS_URL=redis://redis:6379
+      # Must be provided by the host environment; app fails fast if unset/default.
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - db
+      - redis
     volumes:
       - /app/node_modules
+
+  redis:
+    image: redis:7-alpine
 
   db:
     image: postgres:13
@@ -20,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=gonna_play_db
     ports:
-      - '5432:5432'
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
 

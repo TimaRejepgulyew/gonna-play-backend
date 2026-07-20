@@ -1,62 +1,77 @@
-import { randomBytes, pbkdf2Sync } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 
+import { hashToStorage } from "@/auth/password.js";
+import { resolvePagination } from "@/types/pagination.js";
 import { User } from "./user.model.js";
 
-import type { IUserRepository } from "./user.service.js";
+import type { IUserRepository, UserListFilters } from "./user.service.js";
 import type { CreateUser, UpdateUser } from "./types.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 
-const SALT_LENGTH = 16;
-const HASH_ITERATIONS = 100_000;
-const HASH_ALGO = "sha256";
-const HASH_LENGTH = 64;
-
-function hashPassword(
-  password: string,
-  salt?: string
-): { hash: string; salt: string } {
-  const usedSalt = salt || randomBytes(SALT_LENGTH).toString("hex");
-  const hash = pbkdf2Sync(
-    password,
-    usedSalt,
-    HASH_ITERATIONS,
-    HASH_LENGTH,
-    HASH_ALGO
-  ).toString("hex");
-  return { hash, salt: usedSalt };
-}
+const USER_SORT_FIELDS = ["createdAt", "updatedAt", "email", "name", "city"];
 
 export default class UserRepository implements IUserRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async getUserList(): Promise<User[]> {
-    return (await this.prisma.user.findMany({
-      select: {
-        password: false,
+  async getUserList(
+    pagination: PaginationQuery = {},
+    filters: UserListFilters = {}
+  ): Promise<PaginatedResult<User>> {
+    const { skip, take, page, limit, orderBy } = resolvePagination(
+      pagination,
+      USER_SORT_FIELDS,
+      "createdAt"
+    );
+
+    const where = {
+      ...(filters.city ? { city: filters.city } : {}),
+      ...(filters.isActive !== undefined ? { isActive: filters.isActive } : {}),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        omit: { password: true },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: rows as unknown as User[],
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
-    })) as unknown as User[];
+    };
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    return  this.prisma.user.findUnique({
+    return this.prisma.user.findUnique({
       where: { email },
-      select: {
-        password: false,
-      },
+      omit: { password: true },
     }) as unknown as User | null;
   }
 
   async createUser(user: CreateUser): Promise<User | null> {
     try {
-
       const createdUser = await this.prisma.user.create({
         data: {
           birthDate: user.birthDate,
           email: user.email,
           gender: user.gender,
           name: user.name,
-          password: hashPassword(user.password).hash,
+          phone: user.phone,
+          city: user.city,
+          country: user.country,
+          // Store `salt:hash` so login can verify the password later.
+          password: hashToStorage(user.password),
         },
+        omit: { password: true },
       });
       return createdUser as unknown as User;
     } catch (error) {
@@ -68,9 +83,7 @@ export default class UserRepository implements IUserRepository {
   async getUser(id: number): Promise<User | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        password: false,
-      },
+      omit: { password: true },
     });
 
     return user as unknown as User | null;
@@ -95,9 +108,7 @@ export default class UserRepository implements IUserRepository {
         isPhoneVerified: user.isPhoneVerified,
         isTelegramVerified: user.isTelegramVerified,
       },
-      select: {
-        password: false,
-      },
+      omit: { password: true },
     });
 
     return updatedUser as unknown as User | null;
@@ -106,9 +117,7 @@ export default class UserRepository implements IUserRepository {
   async deleteUser(id: number): Promise<number | null> {
     const deletedUser = await this.prisma.user.delete({
       where: { id },
-      select: {
-        password: false,
-      },
+      omit: { password: true },
     });
 
     if (!deletedUser) {

@@ -1,5 +1,7 @@
 import { Type } from "@sinclair/typebox";
 
+import { paginationQuerySchema } from "@/types/pagination.js";
+
 export class User {
   id: number;
   avatar?: string;
@@ -57,6 +59,14 @@ export const createUserSchema = Type.Object({
   telegramId: Type.Optional(Type.String()),
   telegramUsername: Type.Optional(Type.String()),
 });
+
+export const userListQuerySchema = Type.Composite([
+  paginationQuerySchema,
+  Type.Object({
+    city: Type.Optional(Type.String()),
+    isActive: Type.Optional(Type.Boolean()),
+  }),
+]);
 
 export const updateUserSchema = Type.Object({
   avatar: Type.Optional(Type.Number()),

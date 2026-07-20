@@ -11,6 +11,9 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
+# Generate the Prisma client before compiling: model types come from it
+RUN npx prisma generate
+
 # Build the application
 RUN npm run build
 

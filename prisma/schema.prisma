@@ -1,97 +1,250 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Role {
-    id        Int      @id @default(autoincrement())
-    name      String   @unique
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    // Relations
-    userRoles UserRole[]
+  // Relations
+  userRoles UserRole[]
 
-    @@map("roles")
+  @@map("roles")
 }
 
 model User {
-    id                 Int      @id @default(autoincrement())
-    avatar             String?
-    birthDate          String
-    city               String?
-    country            String?
-    email              String   @unique
-    gender             String?
-    isActive           Boolean? @default(true)
-    isEmailVerified    Boolean? @default(false)
-    isPhoneVerified    Boolean? @default(false)
-    isTelegramVerified Boolean? @default(false)
-    name               String?
-    password           String
-    phone              String?
-    telegramId         String?
-    telegramUsername   String?
-    createdAt          DateTime @default(now())
-    updatedAt          DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  avatar             String?
+  birthDate          String
+  city               String?
+  country            String?
+  email              String   @unique
+  gender             String?
+  isActive           Boolean? @default(true)
+  isEmailVerified    Boolean? @default(false)
+  isPhoneVerified    Boolean? @default(false)
+  isTelegramVerified Boolean? @default(false)
+  name               String?
+  password           String
+  phone              String?
+  telegramId         String?
+  telegramUsername   String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-    // Relations
-    player    Player?
-    userRoles UserRole[]
+  // Relations
+  player    Player?
+  userRoles UserRole[]
 
-    @@map("users")
+  @@map("users")
 }
 
 model UserRole {
-    id        Int      @id @default(autoincrement())
-    userId    Int
-    roleId    Int
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  roleId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    // Relations
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, roleId])
-    @@map("user_roles")
+  @@unique([userId, roleId])
+  @@map("user_roles")
 }
 
 model Player {
-    id        Int              @id @default(autoincrement())
-    name      String
-    level     PLAYER_LEVEL?
-    position  PLAYER_POSITION?
-    status    PLAYER_STATUS?   @default(ACTIVE)
-    userId    Int?             @unique
-    createdAt DateTime         @default(now())
-    updatedAt DateTime         @updatedAt
+  id        Int              @id @default(autoincrement())
+  name      String
+  level     PLAYER_LEVEL?
+  position  PLAYER_POSITION?
+  status    PLAYER_STATUS?   @default(ACTIVE)
+  userId    Int?             @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
-    // Relations
-    user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Relations
+  user                User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizedMatches    Match[]            @relation("MatchOrganizer")
+  matchParticipations MatchParticipant[]
+  ratingsGiven        PlayerRating[]     @relation("RatingsGiven")
+  ratingsReceived     PlayerRating[]     @relation("RatingsReceived")
 
-    @@map("players")
+  @@map("players")
+}
+
+model Location {
+  id           Int           @id @default(autoincrement())
+  name         String
+  address      String?
+  city         String
+  country      String?
+  latitude     Float?
+  longitude    Float?
+  surfaceType  SURFACE_TYPE?
+  capacity     Int?
+  openingHours String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  fields Field[]
+
+  @@index([city])
+  @@map("locations")
+}
+
+model Field {
+  id         Int           @id @default(autoincrement())
+  locationId Int
+  name       String
+  format     MATCH_FORMAT
+  surface    SURFACE_TYPE?
+  width      Float?
+  length     Float?
+  isIndoor   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  // Relations
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  matches  Match[]
+
+  @@index([locationId])
+  @@index([format])
+  @@map("fields")
+}
+
+model Match {
+  id              Int           @id @default(autoincrement())
+  organizerId     Int
+  fieldId         Int
+  startTime       DateTime
+  durationMinutes Int           @default(60)
+  format          MATCH_FORMAT
+  requiredLevel   PLAYER_LEVEL?
+  price           Decimal       @default(0) @db.Decimal(10, 2)
+  maxPlayers      Int
+  status          MATCH_STATUS  @default(OPEN)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  organizer    Player             @relation("MatchOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  field        Field              @relation(fields: [fieldId], references: [id], onDelete: Restrict)
+  participants MatchParticipant[]
+  ratings      PlayerRating[]
+
+  @@index([organizerId])
+  @@index([fieldId])
+  @@index([status])
+  @@index([format])
+  @@index([requiredLevel])
+  @@index([startTime])
+  @@index([status, startTime])
+  @@map("matches")
+}
+
+model MatchParticipant {
+  id        Int                @id @default(autoincrement())
+  matchId   Int
+  playerId  Int
+  position  PLAYER_POSITION?
+  team      MATCH_TEAM?
+  status    PARTICIPANT_STATUS
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  // Relations
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerId])
+  @@index([playerId])
+  @@index([matchId, status])
+  @@map("match_participants")
+}
+
+model PlayerRating {
+  id        Int      @id @default(autoincrement())
+  matchId   Int
+  raterId   Int
+  ratedId   Int
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  match Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  rater Player @relation("RatingsGiven", fields: [raterId], references: [id], onDelete: Cascade)
+  rated Player @relation("RatingsReceived", fields: [ratedId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, raterId, ratedId])
+  @@index([ratedId])
+  @@index([raterId])
+  @@index([matchId])
+  @@map("player_ratings")
 }
 
 enum PLAYER_LEVEL {
-    JUNIOR @map("junior")
-    MIDDLE @map("middle")
-    SENIOR @map("senior")
-    LEGEND @map("legend")
+  JUNIOR @map("junior")
+  MIDDLE @map("middle")
+  SENIOR @map("senior")
+  LEGEND @map("legend")
 }
 
 enum PLAYER_POSITION {
-    GOALKEEPER @map("goalkeeper")
-    DEFENDER   @map("defender")
-    MIDFIELDER @map("midfielder")
-    FORWARD    @map("forward")
+  GOALKEEPER @map("goalkeeper")
+  DEFENDER   @map("defender")
+  MIDFIELDER @map("midfielder")
+  FORWARD    @map("forward")
 }
 
 enum PLAYER_STATUS {
-    ACTIVE   @map("active")
-    INACTIVE @map("inactive")
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+}
+
+enum MATCH_FORMAT {
+  FIVE_V_FIVE     @map("5x5")
+  SEVEN_V_SEVEN   @map("7x7")
+  ELEVEN_V_ELEVEN @map("11x11")
+}
+
+enum MATCH_STATUS {
+  OPEN      @map("open")
+  FULL      @map("full")
+  ONGOING   @map("ongoing")
+  COMPLETED @map("completed")
+  CANCELLED @map("cancelled")
+}
+
+enum PARTICIPANT_STATUS {
+  INVITED   @map("invited")
+  REQUESTED @map("requested")
+  CONFIRMED @map("confirmed")
+  DECLINED  @map("declined")
+  LEFT      @map("left")
+}
+
+enum MATCH_TEAM {
+  TEAM_A @map("a")
+  TEAM_B @map("b")
+}
+
+enum SURFACE_TYPE {
+  NATURAL_GRASS    @map("natural_grass")
+  ARTIFICIAL_GRASS @map("artificial_grass")
+  FUTSAL           @map("futsal")
+  CONCRETE         @map("concrete")
+  DIRT             @map("dirt")
 }

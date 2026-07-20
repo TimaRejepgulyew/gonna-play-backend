@@ -2,16 +2,27 @@ services:
   backend:
     build: .
     ports:
-      - '3000:3000'
+      - '${BACKEND_PORT:-3000}:3000'
     environment:
       - NODE_ENV=development
+      # Inside the container the server must bind beyond loopback for the
+      # published port to work.
+      - HOST=0.0.0.0
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/gonna_play_db_dev
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev_secret_change_me
     depends_on:
       - db
+      - redis
     volumes:
       - .:/app
       - /app/node_modules
     command: npm run dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '${REDIS_PORT:-6380}:6379'
 
   db:
     image: postgres:13
@@ -20,7 +31,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=gonna_play_db_dev
     ports:
-      - '5432:5432'
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
 

@@ -4,9 +4,22 @@ import { errorCodes as userErrorCodes } from "@/constants/index.js";
 import { User } from "./user.model.js";
 
 import type { ErrorResponse } from "@/types/prisma.js";
+import type {
+  PaginatedResult,
+  PaginationQuery,
+} from "@/types/pagination.js";
 import type { CreateUser, UpdateUser } from "./types.js";
 
+export interface UserListFilters {
+  city?: string;
+  isActive?: boolean;
+}
+
 export interface IUserRepository {
+  getUserList(
+    pagination?: PaginationQuery,
+    filters?: UserListFilters
+  ): Promise<PaginatedResult<User>>;
   createUser(user: CreateUser): Promise<User | null>;
   deleteUser(id: number): Promise<number | null>;
   getUser(id: number): Promise<User | null>;
@@ -16,6 +29,13 @@ export interface IUserRepository {
 
 export default class UserService {
   constructor(private userRepository: IUserRepository) {}
+
+  getUserList(
+    pagination?: PaginationQuery,
+    filters?: UserListFilters
+  ): Promise<PaginatedResult<User>> {
+    return this.userRepository.getUserList(pagination, filters);
+  }
 
   async createUser(user: CreateUser): Promise<User | ErrorResponse> {
     try {
@@ -32,7 +52,7 @@ export default class UserService {
       }
       return new User(createdUser);
     } catch (error) {
-      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER;
+      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER();
     }
   }
 

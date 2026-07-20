@@ -1,0 +1,2393 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Gonna Play API",
+        "description": "Backend for the gonna-play football match app",
+        "version": "1.0.0"
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {}
+    },
+    "paths": {
+        "/api/auth/register": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "format": "email",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "minLength": 6,
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "birthDate": {
+                                        "type": "string"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "city": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "gender": {
+                                        "type": "string"
+                                    },
+                                    "createPlayer": {
+                                        "type": "boolean"
+                                    },
+                                    "level": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "JUNIOR"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "MIDDLE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "SENIOR"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "LEGEND"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "position": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "GOALKEEPER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DEFENDER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "MIDFIELDER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FORWARD"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password",
+                                    "birthDate"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "user": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "playerId": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "email"
+                                            ]
+                                        },
+                                        "accessToken": {
+                                            "type": "string"
+                                        },
+                                        "refreshToken": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "user",
+                                        "accessToken",
+                                        "refreshToken"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "format": "email",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "minLength": 6,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "user": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "playerId": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "email"
+                                            ]
+                                        },
+                                        "accessToken": {
+                                            "type": "string"
+                                        },
+                                        "refreshToken": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "user",
+                                        "accessToken",
+                                        "refreshToken"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "refreshToken": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "refreshToken"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "accessToken": {
+                                            "type": "string"
+                                        },
+                                        "refreshToken": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "accessToken",
+                                        "refreshToken"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/user/list": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "default": 1,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "page",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "limit",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "sort",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "default": "desc",
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "asc"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "desc"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "order",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "city",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query",
+                        "name": "isActive",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/user/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "avatar": {
+                                        "type": "number"
+                                    },
+                                    "birthDate": {
+                                        "type": "string"
+                                    },
+                                    "city": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "gender": {
+                                        "type": "string"
+                                    },
+                                    "isActive": {
+                                        "type": "boolean"
+                                    },
+                                    "isEmailVerified": {
+                                        "type": "boolean"
+                                    },
+                                    "isPhoneVerified": {
+                                        "type": "boolean"
+                                    },
+                                    "isTelegramVerified": {
+                                        "type": "boolean"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "telegramId": {
+                                        "type": "string"
+                                    },
+                                    "telegramUsername": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/player/list": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "default": 1,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "page",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "limit",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "sort",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "default": "desc",
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "asc"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "desc"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "order",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "JUNIOR"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "MIDDLE"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "SENIOR"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "LEGEND"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "level",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "GOALKEEPER"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "DEFENDER"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "MIDFIELDER"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "FORWARD"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "position",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "ACTIVE"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "INACTIVE"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "status",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "search",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/player/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "put": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/player/": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/location/list": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "default": 1,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "page",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "limit",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "sort",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "default": "desc",
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "asc"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "desc"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "order",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "city",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "country",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "search",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/location/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "city": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "latitude": {
+                                        "type": "number"
+                                    },
+                                    "longitude": {
+                                        "type": "number"
+                                    },
+                                    "surfaceType": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "NATURAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ARTIFICIAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FUTSAL"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "CONCRETE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DIRT"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "capacity": {
+                                        "minimum": 0,
+                                        "type": "integer"
+                                    },
+                                    "openingHours": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/location/": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "city": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "latitude": {
+                                        "type": "number"
+                                    },
+                                    "longitude": {
+                                        "type": "number"
+                                    },
+                                    "surfaceType": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "NATURAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ARTIFICIAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FUTSAL"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "CONCRETE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DIRT"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "capacity": {
+                                        "minimum": 0,
+                                        "type": "integer"
+                                    },
+                                    "openingHours": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "city"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/field/list": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "default": 1,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "page",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "limit",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "sort",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "default": "desc",
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "asc"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "desc"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "order",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "locationId",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "FIVE_V_FIVE"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "SEVEN_V_SEVEN"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "ELEVEN_V_ELEVEN"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "format",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "NATURAL_GRASS"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "ARTIFICIAL_GRASS"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "FUTSAL"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "CONCRETE"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "DIRT"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "surface",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "in": "query",
+                        "name": "isIndoor",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/field/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "format": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FIVE_V_FIVE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "SEVEN_V_SEVEN"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ELEVEN_V_ELEVEN"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "surface": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "NATURAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ARTIFICIAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FUTSAL"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "CONCRETE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DIRT"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "width": {
+                                        "type": "number"
+                                    },
+                                    "length": {
+                                        "type": "number"
+                                    },
+                                    "isIndoor": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/field/": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "locationId": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "format": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FIVE_V_FIVE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "SEVEN_V_SEVEN"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ELEVEN_V_ELEVEN"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "surface": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "NATURAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ARTIFICIAL_GRASS"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FUTSAL"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "CONCRETE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DIRT"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "width": {
+                                        "type": "number"
+                                    },
+                                    "length": {
+                                        "type": "number"
+                                    },
+                                    "isIndoor": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "locationId",
+                                    "name",
+                                    "format"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/list": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "default": 1,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "page",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 20,
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "limit",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "sort",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "default": "desc",
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "asc"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "desc"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "order",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "city",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "format": "date-time",
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "dateFrom",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "format": "date-time",
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "dateTo",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "FIVE_V_FIVE"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "SEVEN_V_SEVEN"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "ELEVEN_V_ELEVEN"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "format",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "JUNIOR"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "MIDDLE"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "SENIOR"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "LEGEND"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "level",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "OPEN"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "FULL"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "ONGOING"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "COMPLETED"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "CANCELLED"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "status",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "fieldId",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "in": "query",
+                        "name": "organizerId",
+                        "required": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "put": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "startTime": {
+                                        "format": "date-time",
+                                        "type": "string"
+                                    },
+                                    "durationMinutes": {
+                                        "minimum": 1,
+                                        "default": 60,
+                                        "type": "integer"
+                                    },
+                                    "requiredLevel": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "JUNIOR"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "MIDDLE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "SENIOR"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "LEGEND"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "price": {
+                                        "minimum": 0,
+                                        "type": "number"
+                                    },
+                                    "maxPlayers": {
+                                        "minimum": 2,
+                                        "type": "integer"
+                                    },
+                                    "status": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "OPEN"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FULL"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ONGOING"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "COMPLETED"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "CANCELLED"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "fieldId": {
+                                        "type": "integer"
+                                    },
+                                    "startTime": {
+                                        "format": "date-time",
+                                        "type": "string"
+                                    },
+                                    "durationMinutes": {
+                                        "minimum": 1,
+                                        "default": 60,
+                                        "type": "integer"
+                                    },
+                                    "format": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FIVE_V_FIVE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "SEVEN_V_SEVEN"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "ELEVEN_V_ELEVEN"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "requiredLevel": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "JUNIOR"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "MIDDLE"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "SENIOR"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "LEGEND"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "price": {
+                                        "minimum": 0,
+                                        "type": "number"
+                                    },
+                                    "maxPlayers": {
+                                        "minimum": 2,
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "fieldId",
+                                    "startTime",
+                                    "format",
+                                    "maxPlayers"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}/participants": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "INVITED"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "REQUESTED"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "CONFIRMED"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "DECLINED"
+                                    ]
+                                },
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "LEFT"
+                                    ]
+                                }
+                            ]
+                        },
+                        "in": "query",
+                        "name": "status",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}/invite": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "playerId": {
+                                        "type": "integer"
+                                    },
+                                    "position": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "GOALKEEPER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DEFENDER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "MIDFIELDER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FORWARD"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "team": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "TEAM_A"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "TEAM_B"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "playerId"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}/join": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "position": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "GOALKEEPER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "DEFENDER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "MIDFIELDER"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "FORWARD"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "team": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "TEAM_A"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "TEAM_B"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}/participants/{pid}/accept": {
+            "post": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "pid",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}/participants/{pid}/decline": {
+            "post": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "pid",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/match/{id}/leave": {
+            "post": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/rating/": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "matchId": {
+                                        "type": "integer"
+                                    },
+                                    "ratedId": {
+                                        "type": "integer"
+                                    },
+                                    "score": {
+                                        "minimum": 1,
+                                        "maximum": 5,
+                                        "type": "integer"
+                                    },
+                                    "comment": {
+                                        "maxLength": 500,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "matchId",
+                                    "ratedId",
+                                    "score"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/rating/player/{playerId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "playerId",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/rating/match/{matchId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "matchId",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/rating/{id}": {
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/role/list": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/role/": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "minLength": 2,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/role/{id}": {
+            "delete": {
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/role/assign": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "integer"
+                                    },
+                                    "roleId": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "roleId"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/api/role/revoke": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "userId": {
+                                        "type": "integer"
+                                    },
+                                    "roleId": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "roleId"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        }
+    }
+}

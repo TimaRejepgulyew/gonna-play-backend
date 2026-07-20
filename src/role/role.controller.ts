@@ -1,0 +1,37 @@
+import prisma from "@/config/prisma.js";
+import RoleRepository from "./role.repository.js";
+import { AssignRoleInput, RoleService } from "./role.service.js";
+
+import type { FastifyInstance } from "fastify";
+import type { Logger } from "pino";
+
+export class RoleController {
+  private roleService: RoleService;
+
+  constructor(
+    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  ) {
+    const roleRepository = new RoleRepository(prisma);
+    this.roleService = new RoleService(roleRepository, server.log);
+  }
+
+  listRoles() {
+    return this.roleService.listRoles();
+  }
+
+  createRole(req: { body: { name: string } }) {
+    return this.roleService.createRole(req.body.name);
+  }
+
+  deleteRole(req: { params: { id: string } }) {
+    return this.roleService.deleteRole(Number(req.params.id));
+  }
+
+  assignRole(req: { body: AssignRoleInput }) {
+    return this.roleService.assignRole(req.body);
+  }
+
+  revokeRole(req: { body: AssignRoleInput }) {
+    return this.roleService.revokeRole(req.body);
+  }
+}

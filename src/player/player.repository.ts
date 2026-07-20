@@ -1,26 +1,63 @@
 import { PrismaClient } from "@prisma/client";
+
+import { resolvePagination } from "@/types/pagination.js";
 import Player from "./player.model.js";
 
 import type {
   IPlayerRepository,
   CreatePlayer,
   UpdatePlayer,
+  PlayerListFilters,
 } from "./player.service.js";
-import { errorCodes } from "fastify";
+import type {
+  PaginatedResult,
+  PaginationQuery,
+} from "@/types/pagination.js";
 
-const playerTable = new Map<number, Player>();
+const PLAYER_SORT_FIELDS = ["createdAt", "updatedAt", "name", "level"];
 
 export default class PlayerRepository implements IPlayerRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async getPlayerList(): Promise<Player[]> {
-    const players = (await this.prisma.player.findMany({
-      include: {
-        user: true,
-      },
-    })) as unknown as Player[];
+  async getPlayerList(
+    pagination: PaginationQuery = {},
+    filters: PlayerListFilters = {}
+  ): Promise<PaginatedResult<Player>> {
+    const { skip, take, page, limit, orderBy } = resolvePagination(
+      pagination,
+      PLAYER_SORT_FIELDS,
+      "createdAt"
+    );
 
-    return players;
+    const where = {
+      ...(filters.level ? { level: filters.level } : {}),
+      ...(filters.position ? { position: filters.position } : {}),
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.search
+        ? { name: { contains: filters.search, mode: "insensitive" as const } }
+        : {}),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.player.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        include: { user: true },
+      }),
+      this.prisma.player.count({ where }),
+    ]);
+
+    return {
+      data: rows as unknown as Player[],
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   }
 
   async createPlayer(player: CreatePlayer): Promise<Player> {
@@ -30,6 +67,7 @@ export default class PlayerRepository implements IPlayerRepository {
         userId: player.userId,
         level: player.level,
         position: player.position,
+        status: player.status,
       },
     });
 
@@ -37,29 +75,47 @@ export default class PlayerRepository implements IPlayerRepository {
   }
 
   async getPlayer(id: number): Promise<Player | null> {
-    return playerTable.has(id) ? (playerTable.get(id) as Player) : null;
+    const player = await this.prisma.player.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+
+    if (!player) {
+      return null;
+    }
+
+    // Aggregate rating from raw PlayerRating rows (not materialized).
+    const aggregate = await this.prisma.playerRating.aggregate({
+      where: { ratedId: id },
+      _avg: { score: true },
+      _count: { score: true },
+    });
+
+    return Object.assign(player as unknown as Player, {
+      rating: {
+        average: aggregate._avg.score ?? 0,
+        count: aggregate._count.score ?? 0,
+      },
+    });
   }
 
   async updatePlayer(player: UpdatePlayer): Promise<Player | null> {
-    const prevPlayer = playerTable.get(player.id);
+    const updatedPlayer = await this.prisma.player.update({
+      where: { id: player.id },
+      data: {
+        name: player.name,
+        level: player.level,
+        position: player.position,
+        status: player.status,
+      },
+      include: { user: true },
+    });
 
-    if (prevPlayer) {
-      playerTable.set(
-        player.id,
-        Object.assign(
-          prevPlayer,
-          Object.assign(player, {
-            updatedAt: new Date().toISOString(),
-          })
-        )
-      );
-
-      return playerTable.get(player.id) as Player;
-    }
-    return null;
+    return updatedPlayer as unknown as Player | null;
   }
 
   async deletePlayer(id: number): Promise<number | null> {
-    return playerTable.delete(id) ? 1 : null;
+    const deleted = await this.prisma.player.delete({ where: { id } });
+    return deleted ? deleted.id : null;
   }
 }

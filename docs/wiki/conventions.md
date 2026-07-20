@@ -44,3 +44,7 @@
 ## Миграции
 
 Миграции — в `prisma/migrations/`, команды обёрнуты в скрипты `package.json` (`prisma:migrate`, `prisma:migrate:create`, `prisma:generate`, `prisma:format`). Файл миграции готовится, но к живой базе **не применяется** автоматически — запуск `prisma migrate` на реальной БД остаётся за человеком.
+
+## Коммиты
+
+Формат — Conventional Commits: `<тип>(<область>): <описание>` (тип и описание на английском, в повелительном наклонении, без точки в конце). Типы: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`. Область — модуль или срез (`auth`, `match`, `wiki`); допустимо опускать. Тело коммита — списком, по строке на смысловое изменение. Образец в истории: `chore(base): consolidate backend foundation and design wiki`.

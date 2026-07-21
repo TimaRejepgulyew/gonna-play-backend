@@ -124,18 +124,25 @@ model Field {
 }
 
 model Match {
-  id              Int           @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   organizerId     Int
   fieldId         Int
-  startTime       DateTime
-  durationMinutes Int           @default(60)
+  title           String
+  startsAt        DateTime
+  durationMin     Int              @default(60)
   format          MATCH_FORMAT
-  requiredLevel   PLAYER_LEVEL?
-  price           Decimal       @default(0) @db.Decimal(10, 2)
+  minPlayers      Int
   maxPlayers      Int
-  status          MATCH_STATUS  @default(OPEN)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  price           Decimal?         @db.Decimal(10, 2)
+  currency        String?          @db.VarChar(3)
+  visibility      MATCH_VISIBILITY @default(PUBLIC)
+  status          MATCH_STATUS     @default(DRAFT)
+  skillMin        PLAYER_LEVEL?
+  skillMax        PLAYER_LEVEL?
+  description     String?
+  teamsBalancedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   // Relations
   organizer    Player             @relation("MatchOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
@@ -147,21 +154,24 @@ model Match {
   @@index([fieldId])
   @@index([status])
   @@index([format])
-  @@index([requiredLevel])
-  @@index([startTime])
-  @@index([status, startTime])
+  @@index([skillMin])
+  @@index([skillMax])
+  @@index([startsAt])
+  @@index([status, startsAt])
   @@map("matches")
 }
 
 model MatchParticipant {
-  id        Int                @id @default(autoincrement())
-  matchId   Int
-  playerId  Int
-  position  PLAYER_POSITION?
-  team      MATCH_TEAM?
-  status    PARTICIPANT_STATUS
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id            Int                @id @default(autoincrement())
+  matchId       Int
+  playerId      Int
+  position      PLAYER_POSITION?
+  team          TEAM_SIDE?
+  status        PARTICIPANT_STATUS
+  paymentStatus PAYMENT_STATUS     @default(UNPAID)
+  joinedAt      DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   // Relations
   match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
@@ -169,7 +179,7 @@ model MatchParticipant {
 
   @@unique([matchId, playerId])
   @@index([playerId])
-  @@index([matchId, status])
+  @@index([matchId, status, joinedAt])
   @@map("match_participants")
 }
 
@@ -215,30 +225,44 @@ enum PLAYER_STATUS {
 }
 
 enum MATCH_FORMAT {
-  FIVE_V_FIVE     @map("5x5")
-  SEVEN_V_SEVEN   @map("7x7")
-  ELEVEN_V_ELEVEN @map("11x11")
+  FIVE   @map("5x5")
+  SEVEN  @map("7x7")
+  ELEVEN @map("11x11")
 }
 
 enum MATCH_STATUS {
-  OPEN      @map("open")
-  FULL      @map("full")
-  ONGOING   @map("ongoing")
-  COMPLETED @map("completed")
-  CANCELLED @map("cancelled")
+  DRAFT       @map("draft")
+  OPEN        @map("open")
+  FULL        @map("full")
+  CONFIRMED   @map("confirmed")
+  IN_PROGRESS @map("in_progress")
+  FINISHED    @map("finished")
+  CANCELLED   @map("cancelled")
+}
+
+enum MATCH_VISIBILITY {
+  PUBLIC  @map("public")
+  PRIVATE @map("private")
 }
 
 enum PARTICIPANT_STATUS {
-  INVITED   @map("invited")
-  REQUESTED @map("requested")
-  CONFIRMED @map("confirmed")
-  DECLINED  @map("declined")
-  LEFT      @map("left")
+  REGISTERED @map("registered")
+  WAITLISTED @map("waitlisted")
+  CONFIRMED  @map("confirmed")
+  CHECKED_IN @map("checked_in")
+  NO_SHOW    @map("no_show")
+  CANCELLED  @map("cancelled")
 }
 
-enum MATCH_TEAM {
-  TEAM_A @map("a")
-  TEAM_B @map("b")
+enum TEAM_SIDE {
+  A @map("a")
+  B @map("b")
+}
+
+enum PAYMENT_STATUS {
+  UNPAID @map("unpaid")
+  PAID   @map("paid")
+  WAIVED @map("waived")
 }
 
 enum SURFACE_TYPE {

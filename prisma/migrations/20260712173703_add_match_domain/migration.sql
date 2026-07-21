@@ -5,11 +5,17 @@
 -- (enums PLAYER_*, таблицы roles/users/user_roles/players)
 -- К утверждённой доменной модели матчей: добавляет 5 таблиц
 -- (locations, fields, matches, match_participants, player_ratings)
--- и 5 перечислений. Существующие таблицы НЕ меняются — у `players`
+-- и 7 перечислений. Существующие таблицы НЕ меняются — у `players`
 -- появляются только виртуальные обратные relation-поля Prisma (без DDL).
 --
 -- ЭТО РУЧНОЙ ЧЕРНОВИК. К живой базе НЕ применялся. Только добавление
 -- (нет DROP / ALTER существующих таблиц), риска для текущих данных нет.
+--
+-- Пересобран под целевую модель вики (docs/wiki/data-model.md): Match с
+-- листом ожидания и полным жизненным циклом (DRAFT→…→FINISHED), поля
+-- startsAt/durationMin/minPlayers/skillMin/skillMax/visibility/currency,
+-- MatchParticipant с paymentStatus/joinedAt, перечисления MATCH_VISIBILITY,
+-- PAYMENT_STATUS и TEAM_SIDE.
 --
 -- Имена колонок соответствуют полям Prisma-моделей: без `@map` на полях
 -- Postgres хранит их в исходном camelCase и требует кавычек ("camelCase").
@@ -21,13 +27,19 @@
 CREATE TYPE "MATCH_FORMAT" AS ENUM ('5x5', '7x7', '11x11');
 
 -- CreateEnum
-CREATE TYPE "MATCH_STATUS" AS ENUM ('open', 'full', 'ongoing', 'completed', 'cancelled');
+CREATE TYPE "MATCH_STATUS" AS ENUM ('draft', 'open', 'full', 'confirmed', 'in_progress', 'finished', 'cancelled');
 
 -- CreateEnum
-CREATE TYPE "PARTICIPANT_STATUS" AS ENUM ('invited', 'requested', 'confirmed', 'declined', 'left');
+CREATE TYPE "MATCH_VISIBILITY" AS ENUM ('public', 'private');
 
 -- CreateEnum
-CREATE TYPE "MATCH_TEAM" AS ENUM ('a', 'b');
+CREATE TYPE "PARTICIPANT_STATUS" AS ENUM ('registered', 'waitlisted', 'confirmed', 'checked_in', 'no_show', 'cancelled');
+
+-- CreateEnum
+CREATE TYPE "TEAM_SIDE" AS ENUM ('a', 'b');
+
+-- CreateEnum
+CREATE TYPE "PAYMENT_STATUS" AS ENUM ('unpaid', 'paid', 'waived');
 
 -- CreateEnum
 CREATE TYPE "SURFACE_TYPE" AS ENUM ('natural_grass', 'artificial_grass', 'futsal', 'concrete', 'dirt');
@@ -71,13 +83,20 @@ CREATE TABLE "matches" (
     "id" SERIAL NOT NULL,
     "organizerId" INTEGER NOT NULL,
     "fieldId" INTEGER NOT NULL,
-    "startTime" TIMESTAMP(3) NOT NULL,
-    "durationMinutes" INTEGER NOT NULL DEFAULT 60,
+    "title" TEXT NOT NULL,
+    "startsAt" TIMESTAMP(3) NOT NULL,
+    "durationMin" INTEGER NOT NULL DEFAULT 60,
     "format" "MATCH_FORMAT" NOT NULL,
-    "requiredLevel" "PLAYER_LEVEL",
-    "price" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "minPlayers" INTEGER NOT NULL,
     "maxPlayers" INTEGER NOT NULL,
-    "status" "MATCH_STATUS" NOT NULL DEFAULT 'open',
+    "price" DECIMAL(10,2),
+    "currency" VARCHAR(3),
+    "visibility" "MATCH_VISIBILITY" NOT NULL DEFAULT 'public',
+    "status" "MATCH_STATUS" NOT NULL DEFAULT 'draft',
+    "skillMin" "PLAYER_LEVEL",
+    "skillMax" "PLAYER_LEVEL",
+    "description" TEXT,
+    "teamsBalancedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -90,8 +109,10 @@ CREATE TABLE "match_participants" (
     "matchId" INTEGER NOT NULL,
     "playerId" INTEGER NOT NULL,
     "position" "PLAYER_POSITION",
-    "team" "MATCH_TEAM",
+    "team" "TEAM_SIDE",
     "status" "PARTICIPANT_STATUS" NOT NULL,
+    "paymentStatus" "PAYMENT_STATUS" NOT NULL DEFAULT 'unpaid',
+    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -134,25 +155,25 @@ CREATE INDEX "matches_status_idx" ON "matches"("status");
 CREATE INDEX "matches_format_idx" ON "matches"("format");
 
 -- CreateIndex
-CREATE INDEX "matches_requiredLevel_idx" ON "matches"("requiredLevel");
+CREATE INDEX "matches_skillMin_idx" ON "matches"("skillMin");
 
 -- CreateIndex
-CREATE INDEX "matches_startTime_idx" ON "matches"("startTime");
+CREATE INDEX "matches_skillMax_idx" ON "matches"("skillMax");
 
 -- CreateIndex
-CREATE INDEX "matches_status_startTime_idx" ON "matches"("status", "startTime");
+CREATE INDEX "matches_startsAt_idx" ON "matches"("startsAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "match_participants_matchId_playerId_key" ON "match_participants"("matchId", "playerId");
+CREATE INDEX "matches_status_startsAt_idx" ON "matches"("status", "startsAt");
 
 -- CreateIndex
 CREATE INDEX "match_participants_playerId_idx" ON "match_participants"("playerId");
 
 -- CreateIndex
-CREATE INDEX "match_participants_matchId_status_idx" ON "match_participants"("matchId", "status");
+CREATE INDEX "match_participants_matchId_status_joinedAt_idx" ON "match_participants"("matchId", "status", "joinedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "player_ratings_matchId_raterId_ratedId_key" ON "player_ratings"("matchId", "raterId", "ratedId");
+CREATE UNIQUE INDEX "match_participants_matchId_playerId_key" ON "match_participants"("matchId", "playerId");
 
 -- CreateIndex
 CREATE INDEX "player_ratings_ratedId_idx" ON "player_ratings"("ratedId");
@@ -162,6 +183,9 @@ CREATE INDEX "player_ratings_raterId_idx" ON "player_ratings"("raterId");
 
 -- CreateIndex
 CREATE INDEX "player_ratings_matchId_idx" ON "player_ratings"("matchId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "player_ratings_matchId_raterId_ratedId_key" ON "player_ratings"("matchId", "raterId", "ratedId");
 
 -- AddForeignKey
 ALTER TABLE "fields" ADD CONSTRAINT "fields_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "locations"("id") ON DELETE CASCADE ON UPDATE CASCADE;

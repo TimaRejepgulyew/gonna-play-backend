@@ -83,7 +83,10 @@ export default class RatingRepository implements IRatingRepository {
       where: { matchId_playerId: { matchId, playerId } },
       select: { status: true },
     });
-    return participant?.status === PARTICIPANT_STATUS.CONFIRMED;
+    return (
+      participant?.status === PARTICIPANT_STATUS.CONFIRMED ||
+      participant?.status === PARTICIPANT_STATUS.CHECKED_IN
+    );
   }
 
   async isMatchParticipant(

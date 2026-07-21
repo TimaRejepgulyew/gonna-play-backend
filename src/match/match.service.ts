@@ -4,10 +4,15 @@ import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import {
   MATCH_FORMAT,
   MATCH_STATUS,
-  MATCH_TEAM,
+  MATCH_VISIBILITY,
   PARTICIPANT_STATUS,
+  TEAM_SIDE,
 } from "@/constants/enums.js";
-import { PLAYER_LEVEL, PLAYER_POSITION } from "@/player/constant.js";
+import {
+  PLAYER_LEVEL,
+  PLAYER_LEVEL_ORDER,
+  PLAYER_POSITION,
+} from "@/player/constant.js";
 import {
   CACHE_TTL,
   cacheKeys,
@@ -15,7 +20,6 @@ import {
   bumpVersion,
   getOrSet,
   getOrSetList,
-  isCacheable,
   participantsClass,
   fieldScheduleClass,
 } from "@/utils/cache.js";
@@ -32,20 +36,32 @@ import type { IFieldRepository } from "@/field/field.service.js";
 
 export interface CreateMatchInput {
   fieldId: number;
-  startTime: string;
-  durationMinutes?: number;
+  title: string;
+  startsAt: string;
+  durationMin?: number;
   format: MATCH_FORMAT;
-  requiredLevel?: PLAYER_LEVEL;
-  price?: number;
+  minPlayers: number;
   maxPlayers: number;
+  price?: number;
+  currency?: string;
+  visibility?: MATCH_VISIBILITY;
+  skillMin?: PLAYER_LEVEL;
+  skillMax?: PLAYER_LEVEL;
+  description?: string;
 }
 
 export interface UpdateMatchInput {
-  startTime?: string;
-  durationMinutes?: number;
-  requiredLevel?: PLAYER_LEVEL;
-  price?: number;
+  title?: string;
+  startsAt?: string;
+  durationMin?: number;
+  minPlayers?: number;
   maxPlayers?: number;
+  price?: number;
+  currency?: string;
+  visibility?: MATCH_VISIBILITY;
+  skillMin?: PLAYER_LEVEL;
+  skillMax?: PLAYER_LEVEL;
+  description?: string;
   status?: MATCH_STATUS;
 }
 
@@ -63,21 +79,33 @@ export interface MatchListFilters {
 export interface CreateMatchData {
   organizerId: number;
   fieldId: number;
-  startTime: Date;
-  durationMinutes?: number;
+  title: string;
+  startsAt: Date;
+  durationMin?: number;
   format: MATCH_FORMAT;
-  requiredLevel?: PLAYER_LEVEL;
-  price?: number;
+  minPlayers: number;
   maxPlayers: number;
+  price?: number;
+  currency?: string;
+  visibility?: MATCH_VISIBILITY;
+  skillMin?: PLAYER_LEVEL;
+  skillMax?: PLAYER_LEVEL;
+  description?: string;
   status: MATCH_STATUS;
 }
 
 export interface UpdateMatchData {
-  startTime?: Date;
-  durationMinutes?: number;
-  requiredLevel?: PLAYER_LEVEL;
-  price?: number;
+  title?: string;
+  startsAt?: Date;
+  durationMin?: number;
+  minPlayers?: number;
   maxPlayers?: number;
+  price?: number;
+  currency?: string;
+  visibility?: MATCH_VISIBILITY;
+  skillMin?: PLAYER_LEVEL;
+  skillMax?: PLAYER_LEVEL;
+  description?: string;
   status?: MATCH_STATUS;
 }
 
@@ -86,6 +114,7 @@ export interface MatchRecord {
   organizerId: number;
   fieldId: number;
   format: MATCH_FORMAT;
+  minPlayers: number;
   maxPlayers: number;
   status: MATCH_STATUS;
 }
@@ -95,15 +124,7 @@ export interface ParticipantRecord {
   matchId: number;
   playerId: number;
   position: PLAYER_POSITION | null;
-  team: MATCH_TEAM | null;
-  status: PARTICIPANT_STATUS;
-}
-
-export interface CreateParticipantData {
-  matchId: number;
-  playerId: number;
-  position?: PLAYER_POSITION;
-  team?: MATCH_TEAM;
+  team: TEAM_SIDE | null;
   status: PARTICIPANT_STATUS;
 }
 
@@ -124,43 +145,65 @@ export interface IMatchParticipantRepository {
     matchId: number,
     status?: PARTICIPANT_STATUS
   ): Promise<ParticipantRecord[]>;
-  findById(id: number): Promise<ParticipantRecord | null>;
   findByMatchAndPlayer(
     matchId: number,
     playerId: number
   ): Promise<ParticipantRecord | null>;
-  create(data: CreateParticipantData): Promise<ParticipantRecord>;
   updateStatus(
     id: number,
     status: PARTICIPANT_STATUS
   ): Promise<ParticipantRecord>;
-  countConfirmed(matchId: number): Promise<number>;
-  // Atomic confirm: re-counts inside a transaction and refuses when capacity
-  // is already reached (returns null), flipping the match to FULL on the last
-  // seat. Prevents two concurrent accepts from exceeding maxPlayers.
-  confirmWithCapacity(
+  // Seated players occupy a slot: REGISTERED | CONFIRMED | CHECKED_IN.
+  countSeated(matchId: number): Promise<number>;
+  // Transactional join. Returns null when an active participation already
+  // exists (=> PARTICIPANT_ALREADY_JOINED); otherwise seats the player as
+  // REGISTERED or WAITLISTED and flips the match to FULL on the last seat.
+  joinWithCapacity(
+    matchId: number,
+    playerId: number,
+    maxPlayers: number,
+    data: { position?: PLAYER_POSITION }
+  ): Promise<{ participant: ParticipantRecord; waitlisted: boolean } | null>;
+  // Transactional leave: CANCELLED + head-of-queue promotion + FULL<->OPEN flip.
+  leaveWithPromotion(
     matchId: number,
     participantId: number,
+    wasSeated: boolean,
     maxPlayers: number
-  ): Promise<ParticipantRecord | null>;
+  ): Promise<{ left: ParticipantRecord; promoted: ParticipantRecord | null }>;
+  // Bulk REGISTERED -> CONFIRMED; returns affected count.
+  confirmAllRegistered(matchId: number): Promise<number>;
+  // Promote waitlisted players up to a raised maxPlayers and flip FULL -> OPEN
+  // when seats remain; returns the number promoted.
+  promoteWaitlist(matchId: number, maxPlayers: number): Promise<number>;
 }
 
-// Allowed match status transitions for organizer/admin edits.
+// A player seated in the match occupies one of maxPlayers slots. WAITLISTED,
+// CANCELLED and NO_SHOW do not. Exported for the repository and rating module.
+export const SEATED_STATUSES: PARTICIPANT_STATUS[] = [
+  PARTICIPANT_STATUS.REGISTERED,
+  PARTICIPANT_STATUS.CONFIRMED,
+  PARTICIPANT_STATUS.CHECKED_IN,
+];
+
+// Allowed match status transitions (docs/wiki/data-model.md lifecycle).
+// OPEN<->FULL edges exist for join/leave transactions only; the transition
+// guard rejects them as manual targets.
 const MATCH_TRANSITIONS: Record<MATCH_STATUS, MATCH_STATUS[]> = {
+  [MATCH_STATUS.DRAFT]: [MATCH_STATUS.OPEN, MATCH_STATUS.CANCELLED],
   [MATCH_STATUS.OPEN]: [
     MATCH_STATUS.FULL,
-    MATCH_STATUS.ONGOING,
-    MATCH_STATUS.COMPLETED,
+    MATCH_STATUS.CONFIRMED,
     MATCH_STATUS.CANCELLED,
   ],
   [MATCH_STATUS.FULL]: [
     MATCH_STATUS.OPEN,
-    MATCH_STATUS.ONGOING,
-    MATCH_STATUS.COMPLETED,
+    MATCH_STATUS.CONFIRMED,
     MATCH_STATUS.CANCELLED,
   ],
-  [MATCH_STATUS.ONGOING]: [MATCH_STATUS.COMPLETED, MATCH_STATUS.CANCELLED],
-  [MATCH_STATUS.COMPLETED]: [],
+  [MATCH_STATUS.CONFIRMED]: [MATCH_STATUS.IN_PROGRESS, MATCH_STATUS.CANCELLED],
+  [MATCH_STATUS.IN_PROGRESS]: [MATCH_STATUS.FINISHED, MATCH_STATUS.CANCELLED],
+  [MATCH_STATUS.FINISHED]: [],
   [MATCH_STATUS.CANCELLED]: [],
 };
 
@@ -177,7 +220,18 @@ export class MatchService {
   }
 
   private isOrganizer(payload: JwtPayload, match: MatchRecord): boolean {
-    return payload.playerId !== undefined && payload.playerId === match.organizerId;
+    return (
+      payload.playerId !== undefined && payload.playerId === match.organizerId
+    );
+  }
+
+  // skillMin must not rank above skillMax; either being absent is valid.
+  private isSkillRangeValid(
+    min?: PLAYER_LEVEL | null,
+    max?: PLAYER_LEVEL | null
+  ): boolean {
+    if (!min || !max) return true;
+    return PLAYER_LEVEL_ORDER.indexOf(min) <= PLAYER_LEVEL_ORDER.indexOf(max);
   }
 
   // -------- Match CRUD --------
@@ -222,17 +276,29 @@ export class MatchService {
     if (field.format !== input.format) {
       return appErrorCodes.MATCH_FORMAT_MISMATCH;
     }
+    if (input.minPlayers > input.maxPlayers) {
+      return appErrorCodes.MATCH_PLAYERS_RANGE_INVALID;
+    }
+    if (!this.isSkillRangeValid(input.skillMin, input.skillMax)) {
+      return appErrorCodes.MATCH_SKILL_RANGE_INVALID;
+    }
 
     const created = await this.matchRepository.createMatch({
       organizerId: payload.playerId,
       fieldId: input.fieldId,
-      startTime: new Date(input.startTime),
-      durationMinutes: input.durationMinutes,
+      title: input.title,
+      startsAt: new Date(input.startsAt),
+      durationMin: input.durationMin,
       format: input.format,
-      requiredLevel: input.requiredLevel,
-      price: input.price,
+      minPlayers: input.minPlayers,
       maxPlayers: input.maxPlayers,
-      status: MATCH_STATUS.OPEN,
+      price: input.price,
+      currency: input.currency,
+      visibility: input.visibility,
+      skillMin: input.skillMin,
+      skillMax: input.skillMax,
+      description: input.description,
+      status: MATCH_STATUS.DRAFT,
     });
     // New match affects the list and the field's schedule.
     await Promise.all([
@@ -255,66 +321,198 @@ export class MatchService {
       return appErrorCodes.FORBIDDEN_NOT_ORGANIZER;
     }
     if (
-      match.status === MATCH_STATUS.COMPLETED ||
+      match.status === MATCH_STATUS.FINISHED ||
       match.status === MATCH_STATUS.CANCELLED
     ) {
       return appErrorCodes.MATCH_NOT_EDITABLE;
     }
-    if (
-      input.status &&
-      input.status !== match.status &&
-      !MATCH_TRANSITIONS[match.status].includes(input.status)
-    ) {
-      return appErrorCodes.MATCH_NOT_EDITABLE;
+
+    const effectiveMin = input.minPlayers ?? match.minPlayers;
+    const effectiveMax = input.maxPlayers ?? match.maxPlayers;
+    if (effectiveMin > effectiveMax) {
+      return appErrorCodes.MATCH_PLAYERS_RANGE_INVALID;
+    }
+    if (!this.isSkillRangeValid(input.skillMin, input.skillMax)) {
+      return appErrorCodes.MATCH_SKILL_RANGE_INVALID;
+    }
+    // A maxPlayers change needs the current seated count twice: to reject
+    // shrinking below occupied seats, and to detect when the new limit leaves
+    // no free slot (the OPEN -> FULL flip below).
+    let seated: number | null = null;
+    if (input.maxPlayers !== undefined) {
+      seated = await this.participantRepository.countSeated(id);
+      if (input.maxPlayers < seated) {
+        return appErrorCodes.MATCH_PLAYERS_RANGE_INVALID;
+      }
     }
 
     const data: UpdateMatchData = {
-      ...(input.startTime ? { startTime: new Date(input.startTime) } : {}),
-      ...(input.durationMinutes !== undefined
-        ? { durationMinutes: input.durationMinutes }
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.startsAt !== undefined
+        ? { startsAt: new Date(input.startsAt) }
         : {}),
-      ...(input.requiredLevel ? { requiredLevel: input.requiredLevel } : {}),
-      ...(input.price !== undefined ? { price: input.price } : {}),
+      ...(input.durationMin !== undefined
+        ? { durationMin: input.durationMin }
+        : {}),
+      ...(input.minPlayers !== undefined
+        ? { minPlayers: input.minPlayers }
+        : {}),
       ...(input.maxPlayers !== undefined
         ? { maxPlayers: input.maxPlayers }
         : {}),
-      ...(input.status ? { status: input.status } : {}),
+      ...(input.price !== undefined ? { price: input.price } : {}),
+      ...(input.currency !== undefined ? { currency: input.currency } : {}),
+      ...(input.visibility !== undefined
+        ? { visibility: input.visibility }
+        : {}),
+      ...(input.skillMin !== undefined ? { skillMin: input.skillMin } : {}),
+      ...(input.skillMax !== undefined ? { skillMax: input.skillMax } : {}),
+      ...(input.description !== undefined
+        ? { description: input.description }
+        : {}),
     };
 
-    const updated = await this.matchRepository.updateMatch(id, data);
+    let response: Match | null = null;
+    if (Object.keys(data).length > 0) {
+      response = await this.matchRepository.updateMatch(id, data);
+      if (!response) {
+        return appErrorCodes.MATCH_NOT_FOUND;
+      }
+      // Raising maxPlayers on a FULL match promotes the queue and reopens it.
+      const promoted =
+        input.maxPlayers !== undefined &&
+        input.maxPlayers > match.maxPlayers &&
+        match.status === MATCH_STATUS.FULL;
+      if (promoted) {
+        await this.participantRepository.promoteWaitlist(id, input.maxPlayers!);
+      }
+      // Lowering (or setting) maxPlayers to exactly the seated count leaves no
+      // free slot, so an OPEN match must flip to FULL — the mirror of the
+      // FULL->OPEN reopen above. This is a system flip, written directly rather
+      // than routed through the manual transition guard.
+      const filledUp =
+        input.maxPlayers !== undefined &&
+        match.status === MATCH_STATUS.OPEN &&
+        seated !== null &&
+        input.maxPlayers === seated;
+      if (filledUp) {
+        await this.matchRepository.setStatus(id, MATCH_STATUS.FULL);
+      }
+      // Edit touches the list, this match's card, and the field schedule
+      // (fieldId is immutable on update, so old == new field). Promotion also
+      // reseats WAITLISTED->REGISTERED, so bump the participants list too.
+      const ops: Promise<void>[] = [
+        bumpVersion("match:list"),
+        cacheDel(cacheKeys.matchDetail(id)),
+        bumpVersion(fieldScheduleClass(match.fieldId)),
+      ];
+      if (promoted) ops.push(bumpVersion(participantsClass(id)));
+      await Promise.all(ops);
+      // A promotion (FULL->OPEN) or a fill-up (OPEN->FULL) also changed status
+      // in the DB; re-read so the response reflects the post-flip snapshot.
+      if (promoted || filledUp) {
+        response = await this.matchRepository.getMatch(id);
+        if (!response) {
+          return appErrorCodes.MATCH_NOT_FOUND;
+        }
+      }
+    }
+
+    // A status field routes through the shared transition guard so there is no
+    // path around its side effects (§9.6). Re-read the record first: fields were
+    // just written (e.g. a raised minPlayers) and status may have system-flipped,
+    // so the guard must gate on the current state, not the pre-update snapshot.
+    if (input.status && input.status !== match.status) {
+      const current = await this.matchRepository.findById(id);
+      if (!current) {
+        return appErrorCodes.MATCH_NOT_FOUND;
+      }
+      return this.transitionStatus(current, input.status, payload);
+    }
+
+    if (response) {
+      return response;
+    }
+    const current = await this.matchRepository.getMatch(id);
+    return current ?? appErrorCodes.MATCH_NOT_FOUND;
+  }
+
+  // -------- Match status transitions --------
+
+  // Single point of status change. Checks organizer/admin rights, the matrix
+  // edge, then applies status-specific side effects. Manual OPEN<->FULL is
+  // rejected — those edges belong to join/leave transactions only.
+  private async transitionStatus(
+    match: MatchRecord,
+    next: MATCH_STATUS,
+    payload: JwtPayload
+  ): Promise<Match | ErrorResponse> {
+    if (!this.isOrganizer(payload, match) && !this.isAdmin(payload)) {
+      return appErrorCodes.FORBIDDEN_NOT_ORGANIZER;
+    }
+    if (
+      next === MATCH_STATUS.FULL ||
+      (next === MATCH_STATUS.OPEN && match.status === MATCH_STATUS.FULL)
+    ) {
+      return appErrorCodes.MATCH_INVALID_TRANSITION;
+    }
+    if (!MATCH_TRANSITIONS[match.status].includes(next)) {
+      return appErrorCodes.MATCH_INVALID_TRANSITION;
+    }
+
+    if (next === MATCH_STATUS.CONFIRMED) {
+      const seated = await this.participantRepository.countSeated(match.id);
+      if (seated < match.minPlayers) {
+        return appErrorCodes.MATCH_MIN_PLAYERS_NOT_REACHED;
+      }
+      await this.participantRepository.confirmAllRegistered(match.id);
+    }
+
+    await this.matchRepository.setStatus(match.id, next);
+
+    const ops: Promise<void>[] = [
+      bumpVersion("match:list"),
+      cacheDel(cacheKeys.matchDetail(match.id)),
+      bumpVersion(fieldScheduleClass(match.fieldId)),
+    ];
+    // confirm mass-updates participant statuses.
+    if (next === MATCH_STATUS.CONFIRMED) {
+      ops.push(bumpVersion(participantsClass(match.id)));
+    }
+    await Promise.all(ops);
+
+    const updated = await this.matchRepository.getMatch(match.id);
     if (!updated) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
-    // Edit touches the list, this match's card, and the field schedule
-    // (fieldId is immutable on update, so old == new field).
-    await Promise.all([
-      bumpVersion("match:list"),
-      cacheDel(cacheKeys.matchDetail(id)),
-      bumpVersion(fieldScheduleClass(match.fieldId)),
-    ]);
     return updated;
   }
 
-  // Soft-cancel: preserve participation/rating history.
-  async cancelMatch(
+  private async runTransition(
     id: number,
+    next: MATCH_STATUS,
     payload: JwtPayload
-  ): Promise<{ status: string } | ErrorResponse> {
+  ): Promise<Match | ErrorResponse> {
     const match = await this.matchRepository.findById(id);
     if (!match) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
-    if (!this.isOrganizer(payload, match) && !this.isAdmin(payload)) {
-      return appErrorCodes.FORBIDDEN_NOT_ORGANIZER;
-    }
-    await this.matchRepository.setStatus(id, MATCH_STATUS.CANCELLED);
-    // Cancellation frees the slot: refresh list, card and field schedule.
-    await Promise.all([
-      bumpVersion("match:list"),
-      cacheDel(cacheKeys.matchDetail(id)),
-      bumpVersion(fieldScheduleClass(match.fieldId)),
-    ]);
-    return { status: "success" };
+    return this.transitionStatus(match, next, payload);
+  }
+
+  // DRAFT -> OPEN.
+  publish(id: number, payload: JwtPayload): Promise<Match | ErrorResponse> {
+    return this.runTransition(id, MATCH_STATUS.OPEN, payload);
+  }
+
+  // OPEN|FULL -> CONFIRMED (requires minPlayers, mass-confirms the roster).
+  confirm(id: number, payload: JwtPayload): Promise<Match | ErrorResponse> {
+    return this.runTransition(id, MATCH_STATUS.CONFIRMED, payload);
+  }
+
+  // Soft-cancel: preserve participation/rating history.
+  cancel(id: number, payload: JwtPayload): Promise<Match | ErrorResponse> {
+    return this.runTransition(id, MATCH_STATUS.CANCELLED, payload);
   }
 
   // -------- Participation --------
@@ -338,8 +536,8 @@ export class MatchService {
 
   // Invalidation shared by every participation mutation: refresh the match
   // card and the per-match participants list. `affectsList` also bumps the
-  // match list version when confirmed-count / match status can change
-  // (accept, decline, leave) — cache-design.md §4.
+  // match list version when seated count / match status can change (join,
+  // leave) — cache-design.md §4.
   private async invalidateParticipation(
     matchId: number,
     affectsList: boolean
@@ -352,49 +550,12 @@ export class MatchService {
     await Promise.all(ops);
   }
 
-  async invite(
-    matchId: number,
-    payload: JwtPayload,
-    input: { playerId: number; position?: PLAYER_POSITION; team?: MATCH_TEAM }
-  ): Promise<ParticipantRecord | ErrorResponse> {
-    const match = await this.matchRepository.findById(matchId);
-    if (!match) {
-      return appErrorCodes.MATCH_NOT_FOUND;
-    }
-    if (!this.isOrganizer(payload, match) && !this.isAdmin(payload)) {
-      return appErrorCodes.FORBIDDEN_NOT_ORGANIZER;
-    }
-    if (match.status !== MATCH_STATUS.OPEN) {
-      return appErrorCodes.MATCH_NOT_OPEN;
-    }
-    const confirmed = await this.participantRepository.countConfirmed(matchId);
-    if (confirmed >= match.maxPlayers) {
-      return appErrorCodes.MATCH_FULL;
-    }
-    const existing = await this.participantRepository.findByMatchAndPlayer(
-      matchId,
-      input.playerId
-    );
-    if (existing) {
-      return appErrorCodes.PARTICIPANT_ALREADY_JOINED;
-    }
-
-    const result = await this.createParticipant({
-      matchId,
-      playerId: input.playerId,
-      position: input.position,
-      team: input.team,
-      status: PARTICIPANT_STATUS.INVITED,
-    });
-    // Invite does not change confirmed count -> no match:list bump.
-    if (isCacheable(result)) await this.invalidateParticipation(matchId, false);
-    return result;
-  }
-
+  // Transactional join: seats the caller as REGISTERED or queues them as
+  // WAITLISTED; capacity is re-counted inside the transaction.
   async join(
     matchId: number,
     payload: JwtPayload,
-    input: { position?: PLAYER_POSITION; team?: MATCH_TEAM }
+    input: { position?: PLAYER_POSITION }
   ): Promise<ParticipantRecord | ErrorResponse> {
     if (!payload.playerId) {
       return appErrorCodes.PLAYER_PROFILE_REQUIRED;
@@ -403,115 +564,43 @@ export class MatchService {
     if (!match) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
-    if (match.status !== MATCH_STATUS.OPEN) {
+    if (
+      match.status !== MATCH_STATUS.OPEN &&
+      match.status !== MATCH_STATUS.FULL
+    ) {
       return appErrorCodes.MATCH_NOT_OPEN;
     }
-    const confirmed = await this.participantRepository.countConfirmed(matchId);
-    if (confirmed >= match.maxPlayers) {
-      return appErrorCodes.MATCH_FULL;
+
+    let result: {
+      participant: ParticipantRecord;
+      waitlisted: boolean;
+    } | null;
+    try {
+      result = await this.participantRepository.joinWithCapacity(
+        matchId,
+        payload.playerId,
+        match.maxPlayers,
+        { position: input.position }
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        return appErrorCodes.PARTICIPANT_ALREADY_JOINED;
+      }
+      this.logger.error(error);
+      throw error;
     }
-    const existing = await this.participantRepository.findByMatchAndPlayer(
-      matchId,
-      payload.playerId
-    );
-    if (existing) {
+    if (!result) {
       return appErrorCodes.PARTICIPANT_ALREADY_JOINED;
     }
-
-    const result = await this.createParticipant({
-      matchId,
-      playerId: payload.playerId,
-      position: input.position,
-      team: input.team,
-      status: PARTICIPANT_STATUS.REQUESTED,
-    });
-    // A pending request does not change confirmed count -> no match:list bump.
-    if (isCacheable(result)) await this.invalidateParticipation(matchId, false);
-    return result;
+    // Seated count and match status can change -> refresh list too.
+    await this.invalidateParticipation(matchId, true);
+    return result.participant;
   }
 
-  // accept/decline share this endpoint; the right to act depends on the
-  // participant's current status and the caller's role (see api-design §4.4).
-  async transition(
-    matchId: number,
-    participantId: number,
-    action: "accept" | "decline",
-    payload: JwtPayload
-  ): Promise<ParticipantRecord | ErrorResponse> {
-    const result = await this.resolveTransition(
-      matchId,
-      participantId,
-      action,
-      payload
-    );
-    // accept/decline change confirmed count and can flip match status.
-    if (isCacheable(result)) await this.invalidateParticipation(matchId, true);
-    return result;
-  }
-
-  private async resolveTransition(
-    matchId: number,
-    participantId: number,
-    action: "accept" | "decline",
-    payload: JwtPayload
-  ): Promise<ParticipantRecord | ErrorResponse> {
-    const match = await this.matchRepository.findById(matchId);
-    if (!match) {
-      return appErrorCodes.MATCH_NOT_FOUND;
-    }
-    const participant = await this.participantRepository.findById(participantId);
-    if (!participant || participant.matchId !== matchId) {
-      return appErrorCodes.PARTICIPANT_NOT_FOUND;
-    }
-
-    const isOrganizer =
-      this.isOrganizer(payload, match) || this.isAdmin(payload);
-    const isOwnerPlayer =
-      payload.playerId !== undefined &&
-      payload.playerId === participant.playerId;
-
-    switch (participant.status) {
-      case PARTICIPANT_STATUS.INVITED:
-        if (action === "accept") {
-          if (!isOwnerPlayer) return appErrorCodes.AUTH_FORBIDDEN;
-          return this.confirmParticipant(match, participant);
-        }
-        if (!isOwnerPlayer && !isOrganizer) return appErrorCodes.AUTH_FORBIDDEN;
-        return this.setParticipantStatus(
-          match,
-          participant,
-          PARTICIPANT_STATUS.DECLINED
-        );
-
-      case PARTICIPANT_STATUS.REQUESTED:
-        if (action === "accept") {
-          if (!isOrganizer) return appErrorCodes.AUTH_FORBIDDEN;
-          return this.confirmParticipant(match, participant);
-        }
-        if (!isOrganizer && !isOwnerPlayer) return appErrorCodes.AUTH_FORBIDDEN;
-        return this.setParticipantStatus(
-          match,
-          participant,
-          PARTICIPANT_STATUS.DECLINED
-        );
-
-      case PARTICIPANT_STATUS.CONFIRMED:
-        // Organizer removing a confirmed player -> LEFT.
-        if (action === "decline") {
-          if (!isOrganizer) return appErrorCodes.AUTH_FORBIDDEN;
-          return this.setParticipantStatus(
-            match,
-            participant,
-            PARTICIPANT_STATUS.LEFT
-          );
-        }
-        return appErrorCodes.PARTICIPANT_INVALID_TRANSITION;
-
-      default:
-        return appErrorCodes.PARTICIPANT_INVALID_TRANSITION;
-    }
-  }
-
+  // Transactional leave: frees the slot and promotes the head of the queue.
   async leave(
     matchId: number,
     payload: JwtPayload
@@ -531,70 +620,66 @@ export class MatchService {
       return appErrorCodes.PARTICIPANT_NOT_FOUND;
     }
     if (
-      participant.status === PARTICIPANT_STATUS.DECLINED ||
-      participant.status === PARTICIPANT_STATUS.LEFT
+      match.status !== MATCH_STATUS.OPEN &&
+      match.status !== MATCH_STATUS.FULL &&
+      match.status !== MATCH_STATUS.CONFIRMED
+    ) {
+      return appErrorCodes.MATCH_INVALID_TRANSITION;
+    }
+    if (participant.status === PARTICIPANT_STATUS.CANCELLED) {
+      return appErrorCodes.PARTICIPANT_INVALID_TRANSITION;
+    }
+
+    const wasSeated = SEATED_STATUSES.includes(participant.status);
+    const result = await this.participantRepository.leaveWithPromotion(
+      matchId,
+      participant.id,
+      wasSeated,
+      match.maxPlayers
+    );
+    // Leaving frees a slot and can flip status -> refresh list too.
+    await this.invalidateParticipation(matchId, true);
+    return result.left;
+  }
+
+  // Self check-in on arrival: REGISTERED|CONFIRMED -> CHECKED_IN.
+  async checkIn(
+    matchId: number,
+    payload: JwtPayload
+  ): Promise<ParticipantRecord | ErrorResponse> {
+    if (!payload.playerId) {
+      return appErrorCodes.PLAYER_PROFILE_REQUIRED;
+    }
+    const match = await this.matchRepository.findById(matchId);
+    if (!match) {
+      return appErrorCodes.MATCH_NOT_FOUND;
+    }
+    if (
+      match.status !== MATCH_STATUS.CONFIRMED &&
+      match.status !== MATCH_STATUS.IN_PROGRESS
+    ) {
+      return appErrorCodes.CHECK_IN_NOT_ALLOWED;
+    }
+    const participant = await this.participantRepository.findByMatchAndPlayer(
+      matchId,
+      payload.playerId
+    );
+    if (!participant) {
+      return appErrorCodes.PARTICIPANT_NOT_FOUND;
+    }
+    if (
+      participant.status !== PARTICIPANT_STATUS.REGISTERED &&
+      participant.status !== PARTICIPANT_STATUS.CONFIRMED
     ) {
       return appErrorCodes.PARTICIPANT_INVALID_TRANSITION;
     }
-    const result = await this.setParticipantStatus(
-      match,
-      participant,
-      PARTICIPANT_STATUS.LEFT
-    );
-    // Leaving frees a confirmed slot -> refresh list too.
-    await this.invalidateParticipation(matchId, true);
-    return result;
-  }
 
-  private async createParticipant(
-    data: CreateParticipantData
-  ): Promise<ParticipantRecord | ErrorResponse> {
-    try {
-      return await this.participantRepository.create(data);
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
-        return appErrorCodes.PARTICIPANT_ALREADY_JOINED;
-      }
-      this.logger.error(error);
-      throw error;
-    }
-  }
-
-  // Confirm a participant. Capacity check, status update and the OPEN->FULL
-  // flip run atomically in the repository transaction so parallel accepts
-  // cannot exceed maxPlayers; a lost race returns MATCH_FULL.
-  private async confirmParticipant(
-    match: MatchRecord,
-    participant: ParticipantRecord
-  ): Promise<ParticipantRecord | ErrorResponse> {
-    const updated = await this.participantRepository.confirmWithCapacity(
-      match.id,
-      participant.id,
-      match.maxPlayers
-    );
-    if (!updated) {
-      return appErrorCodes.MATCH_FULL;
-    }
-    return updated;
-  }
-
-  // Move to DECLINED/LEFT, freeing a slot and reopening a FULL match.
-  private async setParticipantStatus(
-    match: MatchRecord,
-    participant: ParticipantRecord,
-    status: PARTICIPANT_STATUS
-  ): Promise<ParticipantRecord> {
-    const wasConfirmed = participant.status === PARTICIPANT_STATUS.CONFIRMED;
     const updated = await this.participantRepository.updateStatus(
       participant.id,
-      status
+      PARTICIPANT_STATUS.CHECKED_IN
     );
-    if (wasConfirmed && match.status === MATCH_STATUS.FULL) {
-      await this.matchRepository.setStatus(match.id, MATCH_STATUS.OPEN);
-    }
+    // Check-in does not change seated count -> no match:list bump.
+    await this.invalidateParticipation(matchId, false);
     return updated;
   }
 }

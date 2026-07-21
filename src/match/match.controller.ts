@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import FieldRepository from "@/field/field.repository.js";
 import MatchRepository from "./match.repository.js";
@@ -13,15 +13,16 @@ import {
 import type { FastifyInstance } from "fastify";
 import type { Logger } from "pino";
 import type { PaginationQuery } from "@/types/pagination.js";
-import type { PARTICIPANT_STATUS, MATCH_TEAM } from "@/constants/enums.js";
+import type { PARTICIPANT_STATUS } from "@/constants/enums.js";
 import type { PLAYER_POSITION } from "@/player/constant.js";
 
 export class MatchController {
   private matchService: MatchService;
 
   constructor(
-    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const matchRepository = new MatchRepository(prisma);
     const participantRepository = new MatchParticipantRepository(prisma);
     const fieldRepository = new FieldRepository(prisma);
@@ -29,9 +30,11 @@ export class MatchController {
       matchRepository,
       participantRepository,
       fieldRepository,
-      server.log
+      server.log as unknown as Logger
     );
   }
+
+  // -------- Match resource --------
 
   listMatches(req: { query: PaginationQuery & MatchListFilters }) {
     const {
@@ -74,12 +77,30 @@ export class MatchController {
     );
   }
 
-  cancelMatch(req: { params: { id: string }; user?: unknown }) {
-    return this.matchService.cancelMatch(
+  // -------- Match status transitions --------
+
+  publish(req: { params: { id: string }; user?: unknown }) {
+    return this.matchService.publish(
       Number(req.params.id),
       getAuthPayload(req)
     );
   }
+
+  confirm(req: { params: { id: string }; user?: unknown }) {
+    return this.matchService.confirm(
+      Number(req.params.id),
+      getAuthPayload(req)
+    );
+  }
+
+  cancel(req: { params: { id: string }; user?: unknown }) {
+    return this.matchService.cancel(
+      Number(req.params.id),
+      getAuthPayload(req)
+    );
+  }
+
+  // -------- Participation --------
 
   getParticipants(req: {
     params: { id: string };
@@ -91,21 +112,9 @@ export class MatchController {
     );
   }
 
-  invite(req: {
-    params: { id: string };
-    body: { playerId: number; position?: PLAYER_POSITION; team?: MATCH_TEAM };
-    user?: unknown;
-  }) {
-    return this.matchService.invite(
-      Number(req.params.id),
-      getAuthPayload(req),
-      req.body
-    );
-  }
-
   join(req: {
     params: { id: string };
-    body?: { position?: PLAYER_POSITION; team?: MATCH_TEAM };
+    body?: { position?: PLAYER_POSITION };
     user?: unknown;
   }) {
     return this.matchService.join(
@@ -115,26 +124,12 @@ export class MatchController {
     );
   }
 
-  accept(req: { params: { id: string; pid: string }; user?: unknown }) {
-    return this.matchService.transition(
-      Number(req.params.id),
-      Number(req.params.pid),
-      "accept",
-      getAuthPayload(req)
-    );
-  }
-
-  decline(req: { params: { id: string; pid: string }; user?: unknown }) {
-    return this.matchService.transition(
-      Number(req.params.id),
-      Number(req.params.pid),
-      "decline",
-      getAuthPayload(req)
-    );
-  }
-
   leave(req: { params: { id: string }; user?: unknown }) {
-    return this.matchService.leave(
+    return this.matchService.leave(Number(req.params.id), getAuthPayload(req));
+  }
+
+  checkIn(req: { params: { id: string }; user?: unknown }) {
+    return this.matchService.checkIn(
       Number(req.params.id),
       getAuthPayload(req)
     );

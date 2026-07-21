@@ -11,7 +11,7 @@ import {
 } from "@/utils/cache.js";
 import PlayerRating, { RatingAggregate } from "./rating.model.js";
 
-import type { Logger } from "pino";
+import type { FastifyBaseLogger } from "fastify";
 import type { ErrorResponse } from "@/types/prisma.js";
 import type { JwtPayload } from "@/plugins/auth.js";
 
@@ -45,7 +45,7 @@ export interface IRatingRepository {
 export class RatingService {
   constructor(
     private ratingRepository: IRatingRepository,
-    private logger: Logger
+    private logger: FastifyBaseLogger
   ) {}
 
   async createRating(
@@ -65,8 +65,8 @@ export class RatingService {
     if (!status) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
-    if (status !== MATCH_STATUS.COMPLETED) {
-      return appErrorCodes.MATCH_NOT_COMPLETED;
+    if (status !== MATCH_STATUS.FINISHED) {
+      return appErrorCodes.MATCH_NOT_FINISHED;
     }
 
     const [raterOk, ratedOk] = await Promise.all([

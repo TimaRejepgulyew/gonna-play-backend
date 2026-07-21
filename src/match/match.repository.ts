@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
-import { PARTICIPANT_STATUS } from "@/constants/enums.js";
+import { MATCH_STATUS, MATCH_VISIBILITY } from "@/constants/enums.js";
+import { PLAYER_LEVEL, PLAYER_LEVEL_ORDER } from "@/player/constant.js";
 import { resolvePagination } from "@/types/pagination.js";
 import { Match } from "./match.model.js";
+import { SEATED_STATUSES } from "./match.service.js";
 
 import type {
   CreateMatchData,
@@ -11,13 +13,24 @@ import type {
   MatchRecord,
   UpdateMatchData,
 } from "./match.service.js";
-import type { MATCH_STATUS } from "@/constants/enums.js";
 import type {
   PaginatedResult,
   PaginationQuery,
 } from "@/types/pagination.js";
 
-const MATCH_SORT_FIELDS = ["startTime", "createdAt", "price", "maxPlayers"];
+const MATCH_SORT_FIELDS = ["startsAt", "createdAt", "price", "maxPlayers"];
+
+// Skill-window helpers over PLAYER_LEVEL_ORDER: a queried `level` fits a match
+// when the match's skillMin is at or below it and skillMax is at or above it.
+const levelsAtOrBelow = (level: PLAYER_LEVEL): PLAYER_LEVEL[] => {
+  const idx = PLAYER_LEVEL_ORDER.indexOf(level);
+  return PLAYER_LEVEL_ORDER.filter((_, i) => i <= idx);
+};
+
+const levelsAtOrAbove = (level: PLAYER_LEVEL): PLAYER_LEVEL[] => {
+  const idx = PLAYER_LEVEL_ORDER.indexOf(level);
+  return PLAYER_LEVEL_ORDER.filter((_, i) => i >= idx);
+};
 
 export default class MatchRepository implements IMatchRepository {
   constructor(private prisma: PrismaClient) {}
@@ -29,24 +42,50 @@ export default class MatchRepository implements IMatchRepository {
     const { skip, take, page, limit, orderBy } = resolvePagination(
       pagination,
       MATCH_SORT_FIELDS,
-      "startTime",
+      "startsAt",
       "asc"
     );
 
-    const startTime: { gte?: Date; lte?: Date } = {};
-    if (filters.dateFrom) startTime.gte = new Date(filters.dateFrom);
-    if (filters.dateTo) startTime.lte = new Date(filters.dateTo);
+    const startsAt: { gte?: Date; lte?: Date } = {};
+    if (filters.dateFrom) startsAt.gte = new Date(filters.dateFrom);
+    if (filters.dateTo) startsAt.lte = new Date(filters.dateTo);
+
+    // Base list is always public and never DRAFT. A status filter is added
+    // alongside (not replacing) the DRAFT exclusion, so no query can surface a
+    // DRAFT match — a `status=DRAFT` filter yields a contradiction => empty.
+    const and: Record<string, unknown>[] = [
+      { status: { not: MATCH_STATUS.DRAFT } },
+    ];
+    if (filters.status) and.push({ status: filters.status });
+    if (filters.level) {
+      and.push({
+        AND: [
+          {
+            OR: [
+              { skillMin: null },
+              { skillMin: { in: levelsAtOrBelow(filters.level) } },
+            ],
+          },
+          {
+            OR: [
+              { skillMax: null },
+              { skillMax: { in: levelsAtOrAbove(filters.level) } },
+            ],
+          },
+        ],
+      });
+    }
 
     const where = {
-      ...(filters.status ? { status: filters.status } : {}),
+      visibility: MATCH_VISIBILITY.PUBLIC,
       ...(filters.format ? { format: filters.format } : {}),
-      ...(filters.level ? { requiredLevel: filters.level } : {}),
       ...(filters.fieldId ? { fieldId: filters.fieldId } : {}),
       ...(filters.organizerId ? { organizerId: filters.organizerId } : {}),
-      ...(startTime.gte || startTime.lte ? { startTime } : {}),
+      ...(startsAt.gte || startsAt.lte ? { startsAt } : {}),
       ...(filters.city
         ? { field: { location: { city: filters.city } } }
         : {}),
+      AND: and,
     };
 
     const [rows, total] = await Promise.all([
@@ -59,7 +98,7 @@ export default class MatchRepository implements IMatchRepository {
           field: { include: { location: true } },
           _count: {
             select: {
-              participants: { where: { status: PARTICIPANT_STATUS.CONFIRMED } },
+              participants: { where: { status: { in: SEATED_STATUSES } } },
             },
           },
         },
@@ -97,6 +136,7 @@ export default class MatchRepository implements IMatchRepository {
         organizerId: true,
         fieldId: true,
         format: true,
+        minPlayers: true,
         maxPlayers: true,
         status: true,
       },
@@ -108,15 +148,25 @@ export default class MatchRepository implements IMatchRepository {
       data: {
         organizerId: data.organizerId,
         fieldId: data.fieldId,
-        startTime: data.startTime,
+        title: data.title,
+        startsAt: data.startsAt,
         format: data.format,
+        minPlayers: data.minPlayers,
         maxPlayers: data.maxPlayers,
         status: data.status,
-        ...(data.durationMinutes !== undefined
-          ? { durationMinutes: data.durationMinutes }
+        ...(data.durationMin !== undefined
+          ? { durationMin: data.durationMin }
           : {}),
-        ...(data.requiredLevel ? { requiredLevel: data.requiredLevel } : {}),
         ...(data.price !== undefined ? { price: data.price } : {}),
+        ...(data.currency !== undefined ? { currency: data.currency } : {}),
+        ...(data.visibility !== undefined
+          ? { visibility: data.visibility }
+          : {}),
+        ...(data.skillMin !== undefined ? { skillMin: data.skillMin } : {}),
+        ...(data.skillMax !== undefined ? { skillMax: data.skillMax } : {}),
+        ...(data.description !== undefined
+          ? { description: data.description }
+          : {}),
       },
       include: { field: { include: { location: true } } },
     });

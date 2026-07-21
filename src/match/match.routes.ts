@@ -1,8 +1,9 @@
+import { Type } from "@sinclair/typebox";
+
 import { rateLimit } from "@/utils/rateLimit.js";
 import { MatchController } from "./match.controller.js";
 import {
   createMatchSchema,
-  inviteSchema,
   joinSchema,
   matchListQuerySchema,
   participantsQuerySchema,
@@ -10,12 +11,15 @@ import {
 } from "./match.model.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
+const idParamsSchema = Type.Object({ id: Type.String() });
 
 export default async function matchRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  fastifyInstance: FastifyInstance
 ) {
-  const matchController = new MatchController(server);
+  const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
+  const matchController = new MatchController(fastifyInstance);
 
   // -------- Match resource --------
 
@@ -30,7 +34,11 @@ export default async function matchRoutes(
     matchController.listMatches.bind(matchController)
   );
 
-  server.get("/:id", matchController.getMatch.bind(matchController));
+  server.get(
+    "/:id",
+    { schema: { params: idParamsSchema } },
+    matchController.getMatch.bind(matchController)
+  );
 
   server.post(
     "/",
@@ -38,53 +46,66 @@ export default async function matchRoutes(
     matchController.createMatch.bind(matchController)
   );
 
-  server.put(
+  server.patch(
     "/:id",
-    { preHandler: [server.authenticate], schema: { body: updateMatchSchema } },
+    {
+      preHandler: [server.authenticate],
+      schema: { body: updateMatchSchema, params: idParamsSchema },
+    },
     matchController.updateMatch.bind(matchController)
   );
 
-  server.delete(
-    "/:id",
-    { preHandler: [server.authenticate] },
-    matchController.cancelMatch.bind(matchController)
+  // -------- Status transitions --------
+
+  server.post(
+    "/:id/publish",
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
+    matchController.publish.bind(matchController)
+  );
+
+  server.post(
+    "/:id/confirm",
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
+    matchController.confirm.bind(matchController)
+  );
+
+  server.post(
+    "/:id/cancel",
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
+    matchController.cancel.bind(matchController)
   );
 
   // -------- Participation --------
 
   server.get(
     "/:id/participants",
-    { schema: { querystring: participantsQuerySchema } },
+    {
+      schema: {
+        querystring: participantsQuerySchema,
+        params: idParamsSchema,
+      },
+    },
     matchController.getParticipants.bind(matchController)
   );
 
   server.post(
-    "/:id/invite",
-    { preHandler: [server.authenticate], schema: { body: inviteSchema } },
-    matchController.invite.bind(matchController)
-  );
-
-  server.post(
     "/:id/join",
-    { preHandler: [server.authenticate], schema: { body: joinSchema } },
+    {
+      preHandler: [server.authenticate],
+      schema: { body: joinSchema, params: idParamsSchema },
+    },
     matchController.join.bind(matchController)
   );
 
-  server.post(
-    "/:id/participants/:pid/accept",
-    { preHandler: [server.authenticate] },
-    matchController.accept.bind(matchController)
-  );
-
-  server.post(
-    "/:id/participants/:pid/decline",
-    { preHandler: [server.authenticate] },
-    matchController.decline.bind(matchController)
-  );
-
-  server.post(
+  server.delete(
     "/:id/leave",
-    { preHandler: [server.authenticate] },
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
     matchController.leave.bind(matchController)
+  );
+
+  server.post(
+    "/:id/check-in",
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
+    matchController.checkIn.bind(matchController)
   );
 }

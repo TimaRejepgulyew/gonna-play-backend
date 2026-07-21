@@ -45,7 +45,6 @@ export const errorCodes = {
   // --- Match ---
   MATCH_NOT_FOUND: { code: 404, message: "Match not found" },
   MATCH_NOT_OPEN: { code: 409, message: "Match is not open for participation" },
-  MATCH_FULL: { code: 409, message: "Match is full" },
   MATCH_NOT_EDITABLE: {
     code: 409,
     message: "Match cannot be edited in its current status",
@@ -54,7 +53,27 @@ export const errorCodes = {
     code: 400,
     message: "Match format does not match the field format",
   },
-  MATCH_NOT_COMPLETED: { code: 409, message: "Match is not completed yet" },
+  MATCH_INVALID_TRANSITION: {
+    code: 409,
+    message: "Invalid match status transition",
+  },
+  MATCH_MIN_PLAYERS_NOT_REACHED: {
+    code: 409,
+    message: "Minimum number of players has not been reached",
+  },
+  MATCH_PLAYERS_RANGE_INVALID: {
+    code: 400,
+    message: "Invalid players range",
+  },
+  MATCH_SKILL_RANGE_INVALID: {
+    code: 400,
+    message: "Invalid skill range",
+  },
+  CHECK_IN_NOT_ALLOWED: {
+    code: 409,
+    message: "Check-in is not allowed in the current match status",
+  },
+  MATCH_NOT_FINISHED: { code: 409, message: "Match is not finished yet" },
 
   // --- Participation ---
   PARTICIPANT_NOT_FOUND: { code: 404, message: "Match participant not found" },

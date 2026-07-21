@@ -5,30 +5,44 @@
 // `src/player/constant.ts` and are imported from there where needed.
 
 export enum MATCH_FORMAT {
-  FIVE_V_FIVE = "FIVE_V_FIVE",
-  SEVEN_V_SEVEN = "SEVEN_V_SEVEN",
-  ELEVEN_V_ELEVEN = "ELEVEN_V_ELEVEN",
+  FIVE = "FIVE",
+  SEVEN = "SEVEN",
+  ELEVEN = "ELEVEN",
 }
 
 export enum MATCH_STATUS {
+  DRAFT = "DRAFT",
   OPEN = "OPEN",
   FULL = "FULL",
-  ONGOING = "ONGOING",
-  COMPLETED = "COMPLETED",
+  CONFIRMED = "CONFIRMED",
+  IN_PROGRESS = "IN_PROGRESS",
+  FINISHED = "FINISHED",
   CANCELLED = "CANCELLED",
 }
 
-export enum PARTICIPANT_STATUS {
-  INVITED = "INVITED",
-  REQUESTED = "REQUESTED",
-  CONFIRMED = "CONFIRMED",
-  DECLINED = "DECLINED",
-  LEFT = "LEFT",
+export enum MATCH_VISIBILITY {
+  PUBLIC = "PUBLIC",
+  PRIVATE = "PRIVATE",
 }
 
-export enum MATCH_TEAM {
-  TEAM_A = "TEAM_A",
-  TEAM_B = "TEAM_B",
+export enum PARTICIPANT_STATUS {
+  REGISTERED = "REGISTERED",
+  WAITLISTED = "WAITLISTED",
+  CONFIRMED = "CONFIRMED",
+  CHECKED_IN = "CHECKED_IN",
+  NO_SHOW = "NO_SHOW",
+  CANCELLED = "CANCELLED",
+}
+
+export enum TEAM_SIDE {
+  A = "A",
+  B = "B",
+}
+
+export enum PAYMENT_STATUS {
+  UNPAID = "UNPAID",
+  PAID = "PAID",
+  WAIVED = "WAIVED",
 }
 
 export enum SURFACE_TYPE {

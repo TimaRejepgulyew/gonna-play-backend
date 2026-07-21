@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rating/player/:playerId"
+method: GET
+pathVariables:
+  - key: playerId
+    value: "{{p1PlayerId}}"
+    description: "(Required) "
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Рейтинг игрока (публичный) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+    language: text/javascript
+order: 2000

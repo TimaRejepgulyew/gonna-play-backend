@@ -1,3 +1,5 @@
+import { Type } from "@sinclair/typebox";
+
 import { rateLimit } from "@/utils/rateLimit.js";
 import { FieldController } from "./field.controller.js";
 import {
@@ -7,12 +9,15 @@ import {
 } from "./field.model.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
+const idParamsSchema = Type.Object({ id: Type.String() });
 
 export default async function fieldRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  fastifyInstance: FastifyInstance
 ) {
-  const fieldController = new FieldController(server);
+  const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
+  const fieldController = new FieldController(fastifyInstance);
 
   server.get(
     "/list",
@@ -25,7 +30,11 @@ export default async function fieldRoutes(
     fieldController.getFieldList.bind(fieldController)
   );
 
-  server.get("/:id", fieldController.getField.bind(fieldController));
+  server.get(
+    "/:id",
+    { schema: { params: idParamsSchema } },
+    fieldController.getField.bind(fieldController)
+  );
 
   server.post(
     "/",
@@ -40,14 +49,17 @@ export default async function fieldRoutes(
     "/:id",
     {
       preHandler: [server.authenticate, server.authorize("admin")],
-      schema: { body: updateFieldSchema },
+      schema: { body: updateFieldSchema, params: idParamsSchema },
     },
     fieldController.updateField.bind(fieldController)
   );
 
   server.delete(
     "/:id",
-    { preHandler: [server.authenticate, server.authorize("admin")] },
+    {
+      preHandler: [server.authenticate, server.authorize("admin")],
+      schema: { params: idParamsSchema },
+    },
     fieldController.deleteField.bind(fieldController)
   );
 }

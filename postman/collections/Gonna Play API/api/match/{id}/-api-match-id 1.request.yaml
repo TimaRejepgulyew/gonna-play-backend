@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/match/:id
+url: "{{baseUrl}}/api/match/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: json
+  content: |-
+    {
+      "startTime": "<dateTime>",
+      "durationMinutes": 60,
+      "requiredLevel": "JUNIOR",
+      "price": "<number>",
+      "maxPlayers": "<integer>",
+      "status": "OPEN"
+    }
+examples: ./.resources/-api-match-id 1.resources/examples
+order: 2000

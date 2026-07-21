@@ -1,19 +1,7 @@
-import redis from "@/config/redis.js";
+import { getRedis } from "@/config/redis.js";
 import env from "@/config/env.js";
 
-// Structural request/reply shapes. The project's legacy `@types/fastify-jwt`
-// strips the defaults off `FastifyRequest`/`FastifyReply`, so referencing them
-// bare needs all 9 generics; these minimal interfaces sidestep that (and stay
-// assignable to Fastify's preHandler by parameter contravariance).
-export interface RateLimitRequest {
-  ip: string;
-  body?: unknown;
-}
-
-interface RateLimitReply {
-  header(name: string, value: string): unknown;
-  code(statusCode: number): { send(payload: unknown): unknown };
-}
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 // Fixed-window rate limiter (cache-design.md §6): `INCR rate:<action>:<id>`,
 // with `EXPIRE` set on the first hit of a window. Fail-open — if Redis errors,
@@ -23,12 +11,12 @@ export interface RateLimitOptions {
   windowSeconds: number;
   max: number;
   // Extra identifier beyond IP (e.g. login email) to key a second counter on.
-  identifier?: (req: RateLimitRequest) => string | undefined;
+  identifier?: (req: FastifyRequest) => string | undefined;
 }
 
 type PreHandler = (
-  req: RateLimitRequest,
-  reply: RateLimitReply
+  req: FastifyRequest,
+  reply: FastifyReply
 ) => Promise<void>;
 
 export function rateLimit(options: RateLimitOptions): PreHandler {
@@ -40,6 +28,7 @@ export function rateLimit(options: RateLimitOptions): PreHandler {
 
     const key = `rate:${options.action}:${id}`;
     try {
+      const redis = getRedis();
       const count = await redis.incr(key);
       if (count === 1) {
         await redis.expire(key, options.windowSeconds);

@@ -2,7 +2,21 @@ import { PrismaClient } from "@prisma/client";
 // import fs from "node:fs";
 // import path from "node:path";
 
-export default new PrismaClient();
+let client: PrismaClient | null = null;
+
+/** Ленивое создание: первый спросивший создаёт, остальные получают тот же объект. */
+export function getPrisma(): PrismaClient {
+  if (client === null) client = new PrismaClient();
+  return client;
+}
+
+/** Закрывает клиент и освобождает слот, чтобы следующий getPrisma() создал новый. */
+export async function closePrisma(): Promise<void> {
+  if (client === null) return;
+  const current = client;
+  client = null;
+  await current.$disconnect();
+}
 
 // Load Prisma plugins from the root /plugins directory
 // const pluginsDir = path.resolve(__dirname, "./plugins");

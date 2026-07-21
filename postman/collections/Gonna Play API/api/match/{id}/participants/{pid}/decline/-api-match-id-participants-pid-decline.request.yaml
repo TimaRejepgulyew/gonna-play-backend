@@ -1,0 +1,16 @@
+$kind: http-request
+name: /api/match/:id/participants/:pid/decline
+url: "{{baseUrl}}/api/match/:id/participants/:pid/decline"
+method: POST
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+  - key: pid
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-id-participants-pid-decline.resources/examples
+order: 1000

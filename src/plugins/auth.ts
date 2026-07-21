@@ -1,5 +1,5 @@
 import fp from "fastify-plugin";
-import fastifyJwt from "fastify-jwt";
+import fastifyJwt from "@fastify/jwt";
 
 import env from "@/config/env.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
@@ -14,6 +14,14 @@ export interface JwtPayload {
   jti?: string; // unique token id (refresh rotation / access blacklist)
   exp?: number; // expiry (epoch seconds), set by the signer
   iat?: number; // issued-at (epoch seconds), set by the signer
+}
+
+// Canonical typing for the signer input and the verified `req.user` payload.
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: JwtPayload;
+    user: JwtPayload;
+  }
 }
 
 // Reads the verified JWT payload off the request in a type-safe way.

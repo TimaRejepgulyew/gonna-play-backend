@@ -1,3 +1,8 @@
+# Имя проекта фиксировано: без него compose берёт имя из папки, и запуск
+# `docker compose -f docker-compose.test.yml up` поднимает второй комплект
+# контейнеров поверх уже работающего тестового стека — конфликт по портам 5434/6381.
+name: gp-test
+
 services:
   backend:
     build: .
@@ -5,12 +10,17 @@ services:
       - NODE_ENV=test
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/gonna_play_db_test
       - JWT_SECRET=test_secret_change_me
+      - REDIS_URL=redis://redis:6379
+      - RATE_LIMIT_ENABLED=false
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - .:/app
       - /app/node_modules
-    command: npm run test
+    command: sh -c "npx prisma migrate deploy && npm run test:coverage"
 
   db:
     image: postgres:13
@@ -18,10 +28,28 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=gonna_play_db_test
+    # 5434, не 5433: 5432 занят dev-базой, 5433 — prod-базой (gp-prod-db-1).
     ports:
-      - '5432:5432'
+      - '${TEST_DB_PORT:-5434}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 3s
+      retries: 15
     volumes:
       - postgres_data_test:/var/lib/postgresql/data
 
+  redis:
+    # 6381, не 6380: на 6380 опубликован dev-Redis (docker-compose.dev.yml:25),
+    # а flushdb() при очистке тестовой базы стёр бы его данные целиком.
+    image: redis:7-alpine
+    ports:
+      - '${TEST_REDIS_PORT:-6381}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
 volumes:
-  postgres_data_test: 
+  postgres_data_test:

@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import FieldRepository from "./field.repository.js";
 import {
   CreateField,
@@ -8,15 +8,15 @@ import {
 } from "./field.service.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
 import type { PaginationQuery } from "@/types/pagination.js";
 
 export class FieldController {
   private fieldService: FieldService;
 
   constructor(
-    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const fieldRepository = new FieldRepository(prisma);
     this.fieldService = new FieldService(fieldRepository, server.log);
   }

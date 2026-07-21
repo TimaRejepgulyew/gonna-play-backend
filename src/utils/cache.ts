@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import redis from "@/config/redis.js";
+import { getRedis } from "@/config/redis.js";
 
 // Read-through cache helper over the ioredis singleton. Every operation is
 // fail-open: a Redis error is swallowed and the caller falls back to its
@@ -64,6 +64,7 @@ export function isCacheable(value: unknown): boolean {
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
   try {
+    const redis = getRedis();
     const raw = await redis.get(key);
     return raw === null ? null : (JSON.parse(raw) as T);
   } catch {
@@ -77,6 +78,7 @@ export async function cacheSet(
   ttlSeconds: number
 ): Promise<void> {
   try {
+    const redis = getRedis();
     await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
   } catch {
     /* fail-open */
@@ -86,6 +88,7 @@ export async function cacheSet(
 export async function cacheDel(...keys: string[]): Promise<void> {
   if (keys.length === 0) return;
   try {
+    const redis = getRedis();
     await redis.del(...keys);
   } catch {
     /* fail-open */
@@ -114,6 +117,7 @@ export async function getOrSet<T>(
 // Current version counter for a key class (0 when unset or Redis is down).
 async function currentVersion(cls: string): Promise<number> {
   try {
+    const redis = getRedis();
     const raw = await redis.get(`ver:${cls}`);
     const n = raw ? parseInt(raw, 10) : 0;
     return Number.isFinite(n) ? n : 0;
@@ -126,6 +130,7 @@ async function currentVersion(cls: string): Promise<number> {
 // previously written `<cls>:g{N}:...` keys are orphaned and expire via TTL.
 export async function bumpVersion(cls: string): Promise<void> {
   try {
+    const redis = getRedis();
     await redis.incr(`ver:${cls}`);
   } catch {
     /* fail-open */

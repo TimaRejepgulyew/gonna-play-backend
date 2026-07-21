@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/role/:id
+url: "{{baseUrl}}/api/role/:id"
+method: DELETE
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-role-id.resources/examples
+order: 1000

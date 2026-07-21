@@ -1,0 +1,24 @@
+$kind: http-request
+name: Создание локации (для проверки удаления)
+url: "{{baseUrl}}/api/location/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "name": "Smoke Arena tmp {{runId}}", "address": "Main St 2", "city":
+    "Ashgabat", "country": "TM" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Создание локации (для проверки удаления) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("locationId2", d.id);
+    language: text/javascript
+order: 2000

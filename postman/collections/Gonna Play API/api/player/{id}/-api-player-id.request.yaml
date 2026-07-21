@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/player/:id
+url: "{{baseUrl}}/api/player/:id"
+method: GET
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-player-id.resources/examples
+order: 1000

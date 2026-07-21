@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/:id"
+method: GET
+pathVariables:
+  - key: id
+    value: "{{orgUserId}}"
+    description: "(Required) "
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Пользователь по id → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+    language: text/javascript
+order: 2000

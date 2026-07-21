@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import UserRepository from "@/user/user.repository.js";
 import PlayerRepository from "@/player/player.repository.js";
 import { getAuthPayload } from "@/plugins/auth.js";
@@ -11,14 +11,14 @@ import {
 } from "./auth.service.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
 
 export class AuthController {
   private authService: AuthService;
 
   constructor(
-    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const authRepository = new AuthRepository(prisma);
     const userRepository = new UserRepository(prisma);
     const playerRepository = new PlayerRepository(prisma);
@@ -26,7 +26,7 @@ export class AuthController {
       authRepository,
       userRepository,
       playerRepository,
-      server.jwt as unknown as TokenSigner,
+      server.jwt as TokenSigner,
       server.log
     );
   }

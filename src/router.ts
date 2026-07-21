@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { Logger } from "pino";
 
 import authRoutes from "./auth/auth.routes.js";
 import userRoutes from "./user/user.routes.js";
@@ -11,7 +10,7 @@ import ratingRoutes from "./rating/rating.routes.js";
 import roleRoutes from "./role/role.routes.js";
 
 export default function configureRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  server: FastifyInstance
 ) {
   server.register(authRoutes, { prefix: "api/auth" });
   server.register(userRoutes, { prefix: "api/user" });

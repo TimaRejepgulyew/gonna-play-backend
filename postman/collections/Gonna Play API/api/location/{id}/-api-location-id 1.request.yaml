@@ -1,0 +1,26 @@
+$kind: http-request
+name: /api/location/:id
+url: "{{baseUrl}}/api/location/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: json
+  content: |-
+    {
+      "name": "<string>",
+      "address": "<string>",
+      "city": "<string>",
+      "country": "<string>",
+      "latitude": "<number>",
+      "longitude": "<number>",
+      "surfaceType": "NATURAL_GRASS",
+      "capacity": "<integer>",
+      "openingHours": "<string>"
+    }
+examples: ./.resources/-api-location-id 1.resources/examples
+order: 2000

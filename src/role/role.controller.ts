@@ -1,16 +1,16 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import RoleRepository from "./role.repository.js";
 import { AssignRoleInput, RoleService } from "./role.service.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
 
 export class RoleController {
   private roleService: RoleService;
 
   constructor(
-    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const roleRepository = new RoleRepository(prisma);
     this.roleService = new RoleService(roleRepository, server.log);
   }

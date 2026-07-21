@@ -1,4 +1,4 @@
-import redis from "@/config/redis.js";
+import { getRedis } from "@/config/redis.js";
 
 // Redis-backed refresh-token state (cache-design.md §5). Access tokens stay
 // stateless JWTs; refresh tokens carry a `jti` whose active record lives here:
@@ -30,6 +30,7 @@ export async function storeRefresh(
   meta: RefreshMeta = {}
 ): Promise<void> {
   try {
+    const redis = getRedis();
     await redis.set(
       refreshKey(userId, jti),
       JSON.stringify({ createdAt: Date.now(), ...meta }),
@@ -49,6 +50,7 @@ export async function checkRefresh(
   jti: string
 ): Promise<RefreshCheck> {
   try {
+    const redis = getRedis();
     const exists = await redis.exists(refreshKey(userId, jti));
     return exists === 1 ? "valid" : "missing";
   } catch {
@@ -62,6 +64,7 @@ export async function revokeRefresh(
   jti: string
 ): Promise<void> {
   try {
+    const redis = getRedis();
     await redis.del(refreshKey(userId, jti));
     await redis.srem(userSetKey(userId), jti);
   } catch {
@@ -73,6 +76,7 @@ export async function revokeRefresh(
 // hard logout on detected refresh-token reuse).
 export async function revokeAllRefresh(userId: number): Promise<void> {
   try {
+    const redis = getRedis();
     const setKey = userSetKey(userId);
     const jtis = await redis.smembers(setKey);
     const keys = jtis.map((jti) => refreshKey(userId, jti));
@@ -91,6 +95,7 @@ export async function blacklistAccess(
 ): Promise<void> {
   if (ttlSeconds <= 0) return;
   try {
+    const redis = getRedis();
     await redis.set(blacklistKey(jti), "1", "EX", ttlSeconds);
   } catch {
     /* best-effort */
@@ -99,6 +104,7 @@ export async function blacklistAccess(
 
 export async function isAccessBlacklisted(jti: string): Promise<boolean> {
   try {
+    const redis = getRedis();
     return (await redis.exists(blacklistKey(jti))) === 1;
   } catch {
     return false; // fail-open: never lock users out because Redis is down

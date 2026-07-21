@@ -1,0 +1,15 @@
+$kind: http-request
+name: /api/role/assign
+url: "{{baseUrl}}/api/role/assign"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "<integer>",
+      "roleId": "<integer>"
+    }
+examples: ./.resources/-api-role-assign.resources/examples
+order: 1000

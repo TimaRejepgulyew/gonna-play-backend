@@ -1,0 +1,17 @@
+$kind: http-request
+name: /api/match/:id/participants
+url: "{{baseUrl}}/api/match/:id/participants?status=INVITED"
+method: GET
+queryParams:
+  - key: status
+    value: INVITED
+    description: " (This can only be one of INVITED)"
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-id-participants.resources/examples
+order: 1000

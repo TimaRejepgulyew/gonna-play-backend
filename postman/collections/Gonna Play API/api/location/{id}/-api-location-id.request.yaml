@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/location/:id
+url: "{{baseUrl}}/api/location/:id"
+method: GET
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-location-id.resources/examples
+order: 1000

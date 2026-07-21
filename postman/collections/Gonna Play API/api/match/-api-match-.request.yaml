@@ -1,0 +1,20 @@
+$kind: http-request
+name: /api/match/
+url: "{{baseUrl}}/api/match/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fieldId": "<integer>",
+      "startTime": "<dateTime>",
+      "format": "FIVE_V_FIVE",
+      "maxPlayers": "<integer>",
+      "durationMinutes": 60,
+      "requiredLevel": "JUNIOR",
+      "price": "<number>"
+    }
+examples: ./.resources/-api-match-.resources/examples
+order: 3000

@@ -11,7 +11,7 @@ import {
 } from "@/utils/cache.js";
 import Field from "./field.model.js";
 
-import type { Logger } from "pino";
+import type { FastifyBaseLogger } from "fastify";
 import type { ErrorResponse } from "@/types/prisma.js";
 import type {
   PaginatedResult,
@@ -53,7 +53,7 @@ export interface IFieldRepository {
 export class FieldService {
   constructor(
     private fieldRepository: IFieldRepository,
-    private logger: Logger
+    private logger: FastifyBaseLogger
   ) {}
 
   getFieldList(

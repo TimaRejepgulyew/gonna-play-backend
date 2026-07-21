@@ -1,0 +1,9 @@
+$kind: http-request
+name: /api/auth/logout
+url: "{{baseUrl}}/api/auth/logout"
+method: POST
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-auth-logout.resources/examples
+order: 1000

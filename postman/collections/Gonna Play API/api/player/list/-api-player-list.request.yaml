@@ -1,0 +1,31 @@
+$kind: http-request
+name: /api/player/list
+url: "{{baseUrl}}/api/player/list?page=1&limit=20&sort=<string>&order=asc&level\
+  =JUNIOR&position=GOALKEEPER&status=ACTIVE&search=<string>"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: limit
+    value: "20"
+  - key: sort
+    value: <string>
+  - key: order
+    value: asc
+    description: " (This can only be one of asc)"
+  - key: level
+    value: JUNIOR
+    description: " (This can only be one of JUNIOR)"
+  - key: position
+    value: GOALKEEPER
+    description: " (This can only be one of GOALKEEPER)"
+  - key: status
+    value: ACTIVE
+    description: " (This can only be one of ACTIVE)"
+  - key: search
+    value: <string>
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-player-list.resources/examples
+order: 1000

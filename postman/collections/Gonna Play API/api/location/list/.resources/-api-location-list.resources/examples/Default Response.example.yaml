@@ -1,0 +1,31 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/location/list?page=1&limit=20&sort=<string>&order=asc&cit\
+    y=<string>&country=<string>&search=<string>"
+  method: GET
+  queryParams:
+    - key: page
+      value: "1"
+    - key: limit
+      value: "20"
+    - key: sort
+      value: <string>
+    - key: order
+      value: asc
+      description: " (This can only be one of asc)"
+    - key: city
+      value: <string>
+    - key: country
+      value: <string>
+    - key: search
+      value: <string>
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

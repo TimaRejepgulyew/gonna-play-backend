@@ -1,11 +1,10 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import UserRepository from "./user.repository.js";
 import UserService, { UserListFilters } from "./user.service.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
 import type { PaginationQuery } from "@/types/pagination.js";
 import type { UpdateUser } from "./types.js";
 
@@ -13,8 +12,9 @@ export class UserController {
   private userService: UserService;
 
   constructor(
-    _server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    _server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const userRepository = new UserRepository(prisma);
     this.userService = new UserService(userRepository);
   }
@@ -38,7 +38,7 @@ export class UserController {
 
   updateUser(req: {
     params: { id: string };
-    body: UpdateUser;
+    body: Omit<UpdateUser, "id">;
     user?: unknown;
   }) {
     const id = Number(req.params.id);

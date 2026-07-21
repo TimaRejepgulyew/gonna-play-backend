@@ -1,0 +1,42 @@
+$kind: http-request
+name: Регистрация организатора (с профилем игрока)
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "smoke+{{runId}}@gonnaplay.com",
+      "password": "Smoke123!",
+      "name": "Smoke Organizer",
+      "birthDate": "1994-04-04",
+      "createPlayer": true,
+      "level": "MIDDLE",
+      "position": "MIDFIELDER"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set("runId", String(Date.now()));
+    language: text/javascript
+  - type: afterResponse
+    code: >-
+      pm.test("Регистрация организатора (с профилем игрока) → 2xx", function ()
+      {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+
+      var d = pm.response.json();
+
+      pm.collectionVariables.set("orgToken", d.accessToken);
+
+      pm.collectionVariables.set("orgRefresh", d.refreshToken);
+
+      pm.collectionVariables.set("orgUserId", d.user.id);
+
+      pm.collectionVariables.set("orgPlayerId", d.user.playerId);
+    language: text/javascript
+order: 1000

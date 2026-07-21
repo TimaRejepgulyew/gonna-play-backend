@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/player/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "name": "Smoke Admin Player", "userId": {{adminUserId}}, "level":
+    "JUNIOR", "position": "GOALKEEPER" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Профиль игрока для администратора → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("adminPlayerId", d.id);
+    language: text/javascript
+order: 1000

@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "email": "{{adminEmail}}", "password": "{{adminPassword}}" }'
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Вход администратора → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("adminToken", d.accessToken);
+      pm.collectionVariables.set("adminRefresh", d.refreshToken);
+      pm.collectionVariables.set("adminUserId", d.user.id);
+    language: text/javascript
+order: 2000

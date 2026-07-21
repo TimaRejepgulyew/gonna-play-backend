@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/match/:id/invite"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "playerId": {{p1PlayerId}}, "position": "FORWARD" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Организатор приглашает player1 → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("p1Pid", d.id);
+    language: text/javascript
+order: 6000

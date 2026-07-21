@@ -1,13 +1,20 @@
+import { Type } from "@sinclair/typebox";
+
 import { RatingController } from "./rating.controller.js";
 import { createRatingSchema } from "./rating.model.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
+const idParamsSchema = Type.Object({ id: Type.String() });
+const playerIdParamsSchema = Type.Object({ playerId: Type.String() });
+const matchIdParamsSchema = Type.Object({ matchId: Type.String() });
 
 export default async function ratingRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  fastifyInstance: FastifyInstance
 ) {
-  const ratingController = new RatingController(server);
+  const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
+  const ratingController = new RatingController(fastifyInstance);
 
   server.post(
     "/",
@@ -17,18 +24,19 @@ export default async function ratingRoutes(
 
   server.get(
     "/player/:playerId",
+    { schema: { params: playerIdParamsSchema } },
     ratingController.getPlayerRatings.bind(ratingController)
   );
 
   server.get(
     "/match/:matchId",
-    { preHandler: [server.authenticate] },
+    { preHandler: [server.authenticate], schema: { params: matchIdParamsSchema } },
     ratingController.getMatchRatings.bind(ratingController)
   );
 
   server.delete(
     "/:id",
-    { preHandler: [server.authenticate] },
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
     ratingController.deleteRating.bind(ratingController)
   );
 }

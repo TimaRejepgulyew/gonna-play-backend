@@ -21,16 +21,19 @@ import type {
   PaginationQuery,
 } from "@/types/pagination.js";
 import type { CreateUser, UpdateUser } from "@/user/types.js";
-import { Logger } from "pino";
+import type { FastifyBaseLogger } from "fastify";
 
 export interface CreatePlayer
   extends Omit<Player, "id" | "createdAt" | "updatedAt" | "user" | "rating"> {
-  user: CreateUser | UpdateUser;
+  user?: CreateUser;
 }
 
 export interface UpdatePlayer
-  extends Omit<Player, "createdAt" | "updatedAt" | "user" | "rating"> {
-  user?: UpdateUser;
+  extends Partial<
+    Omit<Player, "id" | "createdAt" | "updatedAt" | "user" | "rating">
+  > {
+  id: number;
+  user?: Omit<UpdateUser, "id">;
 }
 
 export interface PlayerListFilters {
@@ -55,7 +58,7 @@ export class PlayerService {
   constructor(
     private playerRepository: PlayerRepository,
     private userRepository: UserRepository,
-    private logger: Logger
+    private logger: FastifyBaseLogger
   ) {}
 
   getPlayerList(

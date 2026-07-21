@@ -1,0 +1,20 @@
+$kind: http-request
+name: /api/match/:id/invite
+url: "{{baseUrl}}/api/match/:id/invite"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: json
+  content: |-
+    {
+      "playerId": "<integer>",
+      "position": "GOALKEEPER",
+      "team": "TEAM_A"
+    }
+examples: ./.resources/-api-match-id-invite.resources/examples
+order: 1000

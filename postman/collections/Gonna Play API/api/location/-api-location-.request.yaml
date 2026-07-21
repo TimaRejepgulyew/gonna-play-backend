@@ -1,0 +1,22 @@
+$kind: http-request
+name: /api/location/
+url: "{{baseUrl}}/api/location/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "<string>",
+      "city": "<string>",
+      "address": "<string>",
+      "country": "<string>",
+      "latitude": "<number>",
+      "longitude": "<number>",
+      "surfaceType": "NATURAL_GRASS",
+      "capacity": "<integer>",
+      "openingHours": "<string>"
+    }
+examples: ./.resources/-api-location-.resources/examples
+order: 3000

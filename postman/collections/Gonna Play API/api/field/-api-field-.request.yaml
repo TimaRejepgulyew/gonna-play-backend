@@ -1,0 +1,20 @@
+$kind: http-request
+name: /api/field/
+url: "{{baseUrl}}/api/field/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "locationId": "<integer>",
+      "name": "<string>",
+      "format": "FIVE_V_FIVE",
+      "surface": "NATURAL_GRASS",
+      "width": "<number>",
+      "length": "<number>",
+      "isIndoor": "<boolean>"
+    }
+examples: ./.resources/-api-field-.resources/examples
+order: 3000

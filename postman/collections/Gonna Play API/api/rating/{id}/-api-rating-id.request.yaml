@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/rating/:id
+url: "{{baseUrl}}/api/rating/:id"
+method: DELETE
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-rating-id.resources/examples
+order: 1000

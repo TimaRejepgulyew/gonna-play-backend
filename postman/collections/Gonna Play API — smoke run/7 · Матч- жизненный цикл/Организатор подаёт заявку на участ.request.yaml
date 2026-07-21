@@ -1,0 +1,27 @@
+$kind: http-request
+name: Организатор подаёт заявку на участие
+url: "{{baseUrl}}/api/match/:id/join"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "position": "MIDFIELDER" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Организатор подаёт заявку на участие → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("orgPid", d.id);
+    language: text/javascript
+order: 4000

@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/field/:id
+url: "{{baseUrl}}/api/field/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: json
+  content: |-
+    {
+      "name": "<string>",
+      "format": "FIVE_V_FIVE",
+      "surface": "NATURAL_GRASS",
+      "width": "<number>",
+      "length": "<number>",
+      "isIndoor": "<boolean>"
+    }
+examples: ./.resources/-api-field-id 1.resources/examples
+order: 2000

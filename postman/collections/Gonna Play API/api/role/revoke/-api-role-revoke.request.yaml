@@ -1,0 +1,15 @@
+$kind: http-request
+name: /api/role/revoke
+url: "{{baseUrl}}/api/role/revoke"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "<integer>",
+      "roleId": "<integer>"
+    }
+examples: ./.resources/-api-role-revoke.resources/examples
+order: 1000

@@ -1,0 +1,32 @@
+$kind: http-request
+name: /api/user/:id
+url: "{{baseUrl}}/api/user/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: json
+  content: |-
+    {
+      "avatar": "<number>",
+      "birthDate": "<string>",
+      "city": "<string>",
+      "country": "<string>",
+      "email": "<string>",
+      "gender": "<string>",
+      "isActive": "<boolean>",
+      "isEmailVerified": "<boolean>",
+      "isPhoneVerified": "<boolean>",
+      "isTelegramVerified": "<boolean>",
+      "name": "<string>",
+      "password": "<string>",
+      "phone": "<string>",
+      "telegramId": "<string>",
+      "telegramUsername": "<string>"
+    }
+examples: ./.resources/-api-user-id 1.resources/examples
+order: 2000

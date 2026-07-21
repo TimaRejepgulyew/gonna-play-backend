@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/player/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{orgPlayerId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "id": {{orgPlayerId}}, "name": "Smoke Organizer", "level": "SENIOR" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Организатор правит своего игрока → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+    language: text/javascript
+order: 4000

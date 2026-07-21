@@ -1,0 +1,24 @@
+$kind: http-request
+name: Создание поля (для проверки удаления)
+url: "{{baseUrl}}/api/field/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "name": "Smoke Field tmp", "locationId": {{locationId2}}, "format":
+    "FIVE_V_FIVE" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Создание поля (для проверки удаления) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("fieldId2", d.id);
+    language: text/javascript
+order: 2000

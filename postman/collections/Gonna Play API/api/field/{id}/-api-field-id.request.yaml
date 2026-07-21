@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/field/:id
+url: "{{baseUrl}}/api/field/:id"
+method: GET
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-field-id.resources/examples
+order: 1000

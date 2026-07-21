@@ -2,6 +2,18 @@
 
 > Срез репозитория на 2026-07-20. Этот документ описывает **реально подключённый код**, а не целевую архитектуру из старой wiki. Источники правды: `src/router.ts`, `src/**/*.routes.ts`, `src/**/*.controller.ts`, `src/**/*.service.ts`, `src/**/*.repository.ts`, `prisma/schema.prisma`, `src/utils/cache.ts` и Docker Compose-файлы.
 
+> ## ⛔ НЕДОСТОВЕРНО: всё про матчи и участие
+>
+> **Не пишите по этому документу код и тесты матчевого домена.** Разделы «Matches и participation» (§3), матчевые строки таблицы enum-ов (§4), «Подтверждение участника и заполнение матча» (§5) и обе state machine (§6) описывают **инвайт-модель, которой в коде никогда не было**: приглашения, заявки, статусы `INVITED`/`REQUESTED`/`DECLINED`/`LEFT`, статусы матча `ONGOING`/`COMPLETED`, метод `resolveTransition`, эндпоинты `/invite` и `/participants/:pid/accept|decline`. Ничего из этого не существует. Прогон тестового покрытия из-за этого дважды переделывал работу с нуля.
+>
+> **Фактическая модель — лист ожидания, а не приглашения.** Статусы матча: `DRAFT`, `OPEN`, `FULL`, `CONFIRMED`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`. Статусы участия: `REGISTERED`, `WAITLISTED`, `CONFIRMED`, `CHECKED_IN`, `NO_SHOW`, `CANCELLED`.
+>
+> **Источник истины по матчам — только код:** `src/constants/enums.ts` (enum-ы), `prisma/schema.prisma` (таблицы и связи), `src/match/` (маршруты, сервис, репозитории).
+>
+> Достоверны в матчевой части лишь четыре строки таблицы эндпоинтов — `GET /api/match/list`, `GET /api/match/:id`, `POST /api/match` и `GET /api/match/:id/participants`; остальное неверно.
+>
+> Разделы намеренно **не переписаны, а помечены**: переработка под фактическую модель отложена до стабилизации среза `src/match/*`, который сейчас правится параллельно.
+
 ## Паспорт системы
 
 | Показатель | Фактическое состояние |
@@ -42,12 +54,12 @@ flowchart LR
       fastify --> logs
     end
 
-    repo --> prisma[Prisma singleton\nsrc/config/prisma.ts]
+    repo --> prisma[getPrisma\nслот модуля src/config/prisma.ts]
     prisma --> pg[(PostgreSQL\nsource of truth)]
     svc <-->|GET/SET/DEL/INCR\nfail-open| redis[(Redis)]
     cross <-->|refresh state\nblacklist · counters| redis
 
-    pluginPrisma[server.prisma\nsecond PrismaClient] -. decorated but not used\nby controllers .-> api
+    pluginPrisma[server.prisma] -. тот же самый клиент,\nдекорирован плагином .-> prisma
 ```
 
 Основной запрос проходит так:
@@ -60,7 +72,8 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    boot[src/index.ts] --> cors[CORS]
+    boot[src/index.ts\nтолько listen] --> build[buildApp\nsrc/app.ts]
+    build --> cors[CORS]
     cors --> prismaPlugin[Prisma plugin]
     prismaPlugin --> redisPlugin[Redis plugin]
     redisPlugin --> jwt[JWT authenticate / authorize]
@@ -70,7 +83,11 @@ flowchart LR
     routes --> ping[/ping]
 ```
 
-`@fastify/helmet` установлен как dependency, но в `src/index.ts` не зарегистрирован.
+Сборка приложения вынесена в фабрику `buildApp()` (`src/app.ts`): она создаёт экземпляр Fastify, регистрирует плагины в порядке выше, вешает `preSerialization`-хук, подключает маршруты и возвращает уже готовый (`await server.ready()`) инстанс. `src/index.ts` только вызывает фабрику и слушает порт; отдельного `src/server.ts` больше нет — модуль удалён. Тесты получают собственный изолированный инстанс тем же вызовом `buildApp({ logger: { level: "silent" } })`.
+
+**Клиенты БД и кеша больше не создаются на импорте.** `src/config/prisma.ts` и `src/config/redis.ts` держат приватный слот модуля и отдают клиент лениво — `getPrisma()` / `getRedis()` создают его при первом обращении, `closePrisma()` / `closeRedis()` закрывают и освобождают слот. Владельцы жизненного цикла — плагины: `src/plugins/prisma.ts` декорирует `server.prisma` тем же самым объектом, `src/plugins/redis.ts` передаёт свой в `@fastify/redis` с `closeClient: false`, и оба закрывают клиент в хуке `onClose`. Пул Prisma в процессе **один**: второго `PrismaClient` внутри плагина, как было раньше, больше нет, и репозитории работают ровно с тем клиентом, который декорирован на инстансе. `src/config/redis.ts` дополнительно экспортирует `setRedis()` — шов, через который юнит-тесты подставляют in-memory заглушку.
+
+`@fastify/helmet` установлен как dependency, но в `buildApp()` не регистрируется.
 
 ## 2. Карта модулей и зависимостей
 
@@ -107,6 +124,16 @@ flowchart TD
 ## 3. API dashboard
 
 Базовый адрес по умолчанию: `http://localhost:3000`. Защищённые методы ожидают заголовок `Authorization: Bearer <accessToken>`. Пагинация списков: `page`, `limit` (максимум 100), `sort`, `order=asc|desc`.
+
+Разрешённые поля сортировки:
+
+| Список | `sort` |
+|---|---|
+| user | `createdAt`, `updatedAt`, `email`, `name`, `city` |
+| player | `createdAt`, `updatedAt`, `name`, `level` |
+| location | `createdAt`, `updatedAt`, `name`, `city` |
+| field | `createdAt`, `updatedAt`, `name`, `format` |
+| match | `startTime`, `createdAt`, `price`, `maxPlayers` |
 
 Легенда доступа:
 
@@ -155,21 +182,23 @@ flowchart TD
 | `PUT /api/field/:id` | admin | Обновить поле; `locationId` и `format` не меняются | — |
 | `DELETE /api/field/:id` | admin | Удалить; FK запрещает удаление поля с матчами | — |
 
-### Matches и participation
+### Matches и participation ⛔ НЕДОСТОВЕРНО
+
+> **Таблица ниже описывает несуществующие маршруты.** Достоверны только четыре строки, помеченные ✅; строки с ⛔ описывают инвайт-модель, которой в коде нет: маршрутов `/invite` и `/participants/:pid/accept|decline` не существует, параметра `:pid` нет ни в одном пути, `PUT` и `DELETE /api/match/:id` не зарегистрированы. Реальный набор матчевых маршрутов читайте в `src/match/match.routes.ts`. Правка отложена до стабилизации среза `src/match/*`.
 
 | Метод и путь | Доступ | Назначение / правило | Ограничение |
 |---|---|---|---|
-| `GET /api/match/list` | public | `city`, `dateFrom`, `dateTo`, `format`, `level`, `status`, `fieldId`, `organizerId` | 60 / мин / IP |
-| `GET /api/match/:id` | public | Матч + field/location + participants/player | — |
-| `POST /api/match` | auth + player | Создать матч; формат обязан совпадать с форматом поля | — |
-| `PUT /api/match/:id` | organizer | Изменить время, длительность, уровень, цену, лимит, статус | — |
-| `DELETE /api/match/:id` | organizer | Soft-cancel: статус `CANCELLED`, история остаётся | — |
-| `GET /api/match/:id/participants` | public | Участники; опционально `status` | — |
-| `POST /api/match/:id/invite` | organizer | Пригласить `playerId`; статус `INVITED` | — |
-| `POST /api/match/:id/join` | auth + player | Подать заявку; статус `REQUESTED` | — |
-| `POST /api/match/:id/participants/:pid/accept` | state-dependent | INVITED принимает сам игрок; REQUESTED принимает organizer/admin | — |
-| `POST /api/match/:id/participants/:pid/decline` | state-dependent | Отказ приглашённого/заявителя либо удаление organizer/admin | — |
-| `POST /api/match/:id/leave` | auth + player | Уйти из матча; статус `LEFT`, FULL может открыться | — |
+| ✅ `GET /api/match/list` | public | `city`, `dateFrom`, `dateTo`, `format`, `level`, `status`, `fieldId`, `organizerId` | 60 / мин / IP |
+| ✅ `GET /api/match/:id` | public | Матч + field/location + participants/player | — |
+| ✅ `POST /api/match` | auth + player | Создать матч; формат обязан совпадать с форматом поля | — |
+| ⛔ `PUT /api/match/:id` | organizer | Маршрута нет — изменение матча идёт через `PATCH` | — |
+| ⛔ `DELETE /api/match/:id` | organizer | Маршрута нет | — |
+| ✅ `GET /api/match/:id/participants` | public | Участники; опционально `status` | — |
+| ⛔ `POST /api/match/:id/invite` | organizer | Маршрута нет; приглашений в модели нет | — |
+| ⛔ `POST /api/match/:id/join` | auth + player | Маршрут есть, но описание неверно: это не заявка со статусом `REQUESTED`, а самостоятельная запись игрока в лист | — |
+| ⛔ `POST /api/match/:id/participants/:pid/accept` | — | Маршрута нет; выборочного одобрения заявки в модели нет | — |
+| ⛔ `POST /api/match/:id/participants/:pid/decline` | — | Маршрута нет | — |
+| ⛔ `POST /api/match/:id/leave` | auth + player | Маршрут есть, но статуса `LEFT` не существует | — |
 
 ### Ratings и Roles
 
@@ -191,6 +220,23 @@ flowchart TD
 |---|---|---|
 | `GET /ping` | public | Простая проверка процесса: `{message: "pong"}` |
 | `GET /docs/json` | public | OpenAPI 3.0.3, собранный из route schemas |
+
+### Основной пользовательский сценарий
+
+```mermaid
+flowchart LR
+    register[register\noptionally createPlayer] --> token[access + refresh JWT]
+    token --> browse[list locations / fields / matches]
+    browse --> create[organizer creates match]
+    create --> join[another player requests join]
+    join --> accept[organizer accepts]
+    accept --> full{capacity reached?}
+    full -->|yes| statusFull[match FULL]
+    full -->|no| statusOpen[match OPEN]
+    statusFull --> play[ONGOING → COMPLETED]
+    statusOpen --> play
+    play --> rating[confirmed players rate each other]
+```
 
 ## 4. Таблицы и связи
 
@@ -322,11 +368,13 @@ erDiagram
 | PLAYER_LEVEL | JUNIOR, MIDDLE, SENIOR, LEGEND |
 | PLAYER_POSITION | GOALKEEPER, DEFENDER, MIDFIELDER, FORWARD |
 | PLAYER_STATUS | ACTIVE, INACTIVE |
-| MATCH_FORMAT | FIVE_V_FIVE, SEVEN_V_SEVEN, ELEVEN_V_ELEVEN |
-| MATCH_STATUS | OPEN, FULL, ONGOING, COMPLETED, CANCELLED |
-| PARTICIPANT_STATUS | INVITED, REQUESTED, CONFIRMED, DECLINED, LEFT |
-| MATCH_TEAM | TEAM_A, TEAM_B |
+| ⛔ MATCH_FORMAT | ~~FIVE_V_FIVE, SEVEN_V_SEVEN, ELEVEN_V_ELEVEN~~ — таких членов нет; фактически `FIVE`, `SEVEN`, `ELEVEN` |
+| ⛔ MATCH_STATUS | ~~OPEN, FULL, ONGOING, COMPLETED, CANCELLED~~ — фактически `DRAFT`, `OPEN`, `FULL`, `CONFIRMED`, `IN_PROGRESS`, `FINISHED`, `CANCELLED` |
+| ⛔ PARTICIPANT_STATUS | ~~INVITED, REQUESTED, CONFIRMED, DECLINED, LEFT~~ — фактически `REGISTERED`, `WAITLISTED`, `CONFIRMED`, `CHECKED_IN`, `NO_SHOW`, `CANCELLED` |
+| ⛔ MATCH_TEAM | ~~TEAM_A, TEAM_B~~ — enum называется `TEAM_SIDE` со значениями `A`, `B` |
 | SURFACE_TYPE | NATURAL_GRASS, ARTIFICIAL_GRASS, FUTSAL, CONCRETE, DIRT |
+
+Строки с ⛔ выправлены по `src/constants/enums.ts` — при расхождении с любым другим местом этого документа прав файл enum-ов, а не документ.
 
 ## 5. Runtime tracing: ключевые потоки
 
@@ -398,7 +446,9 @@ sequenceDiagram
     end
 ```
 
-### Подтверждение участника и заполнение матча
+### Подтверждение участника и заполнение матча ⛔ НЕДОСТОВЕРНО
+
+> Диаграмма ниже описывает несуществующий сценарий: маршрута `POST .../participants/:pid/accept` нет, метода `resolveTransition` нет, приглашений и заявок в модели нет. Фактический путь участника — самостоятельный `POST /:id/join` с постановкой в лист и оптовое подтверждение `POST /:id/confirm`. Реальную последовательность читайте в `src/match/match.service.ts` и `src/match/match-participant.repository.ts`.
 
 ```mermaid
 sequenceDiagram
@@ -431,7 +481,7 @@ sequenceDiagram
     end
 ```
 
-Транзакция не задаёт `isolationLevel: Serializable` и не берёт явную блокировку строки матча. Поэтому заявленная в комментариях защита от двух параллельных accept требует отдельного concurrency-теста: при стандартном PostgreSQL `READ COMMITTED` один только `count` внутри interactive transaction не является полной гарантией от overbooking.
+> **Опровергнуто кодом.** Прежнее утверждение — «транзакция не задаёт `isolationLevel: Serializable`, поэтому возможен overbooking при `READ COMMITTED`» — неверно. `src/match/match-participant.repository.ts` пропускает все чувствительные к вместимости транзакции через `runSerializable()`, который задаёт `isolationLevel: Prisma.TransactionIsolationLevel.Serializable` явно и повторяет транзакцию один раз при ошибке сериализации Postgres (`P2034`). Отдельный concurrency-тест по-прежнему полезен, но описанной дыры в изоляции нет.
 
 ### Оценка игрока
 
@@ -449,9 +499,11 @@ flowchart LR
     save --> invalidate[DEL player rating/detail\nINCR leaderboard version]
 ```
 
-## 6. State machines
+## 6. State machines ⛔ НЕДОСТОВЕРНО
 
-### Матч
+> **Обе диаграммы этого раздела описывают несуществующую модель и подлежат переработке.** Статусов `ONGOING` и `COMPLETED` у матча нет; статусов `INVITED`, `REQUESTED`, `DECLINED`, `LEFT` у участника нет; переходы, доступ и триггеры описаны неверно. Фактические наборы статусов — в шапке документа и в `src/constants/enums.ts`; фактическая матрица переходов матча — в `MATCH_TRANSITIONS` (`src/match/match.service.ts`), фактические переходы участия — в методах `join` / `leave` / `confirm` / `checkIn` того же сервиса. Переработка отложена до стабилизации среза `src/match/*`.
+
+### Матч ⛔ НЕДОСТОВЕРНО
 
 ```mermaid
 stateDiagram-v2
@@ -468,9 +520,9 @@ stateDiagram-v2
     ONGOING --> CANCELLED
 ```
 
-`PUT /match/:id` применяет таблицу разрешённых переходов. `DELETE /match/:id` напрямую ставит `CANCELLED` и отдельно не запрещает отмену уже завершённого матча.
+~~`PUT /match/:id` применяет таблицу разрешённых переходов. `DELETE /match/:id` напрямую ставит `CANCELLED`.~~ Ни того, ни другого маршрута нет.
 
-### Участник матча
+### Участник матча ⛔ НЕДОСТОВЕРНО
 
 ```mermaid
 stateDiagram-v2
@@ -591,12 +643,14 @@ flowchart LR
 | Приоритет | Наблюдение | Практический эффект |
 |---|---|---|
 | высокий | Миграция `20260712173703_add_match_domain` помечена как ручной черновик и «не применялась» | Код ожидает 5 новых таблиц; состояние реальной БД нужно проверять отдельно |
-| высокий | Confirm capacity использует transaction без explicit Serializable/lock | Возможен concurrency race; нужен параллельный интеграционный тест |
+| ~~высокий~~ снято | ~~Confirm capacity использует transaction без explicit Serializable/lock~~ — **опровергнуто**: `runSerializable()` в `src/match/match-participant.repository.ts` задаёт `Serializable` явно и ретраит `P2034` | Описанного race нет; concurrency-тест остаётся полезным как регресс-защита |
 | высокий | Redis security paths fail-open | При outage отключаются rate limit, refresh-state validation и blacklist |
-| средний | Создаются два PrismaClient: plugin и singleton; контроллеры используют singleton | `server.prisma` фактически не участвует в запросах, а onClose закрывает другой client |
+| ~~средний~~ снято | ~~Создаются два PrismaClient: plugin и singleton~~ — **исправлено рефакторингом**: клиент один, живёт в слоте `src/config/prisma.ts`, плагин декорирует его же и закрывает через `closePrisma()` | `server.prisma` и клиент репозиториев — один объект; `onClose` закрывает именно его |
+| высокий | Матчевый раздел этого документа (§3 Matches, матчевые enum-ы §4, §5 подтверждение участника, §6 state machines) описывает несуществующую инвайт-модель | Любой, кто пишет по нему код или тесты, делает работу дважды; переработка отложена до стабилизации `src/match/*` |
 | средний | Distributed tracing, metrics и readiness отсутствуют | Нет end-to-end диагностики latency/errors и dependency health |
 | средний | Base/test Compose не содержат Redis; base Compose также не задаёт `HOST=0.0.0.0` | Поведение и доступность отличаются от dev/prod |
 | средний | `@fastify/helmet` установлен, но не зарегистрирован | Security headers, описанные в старой wiki, не выдаются приложением |
+| средний | Используется deprecated package `fastify-jwt`; Fastify печатает warning и рекомендует `@fastify/jwt` | Обновление Fastify/Node может превратить совместимость в runtime-проблему |
 | средний | Player route schemas передаются не как `{body: ...}`, update schema требует `id` в body | Фактическая HTTP-валидация/контракт могут расходиться с намерением |
 | средний | `updateUserSchema.avatar` — number, а Prisma/model — string | OpenAPI/runtime validation расходятся со схемой БД |
 | низкий | `FIELD_SCHEDULE` и `PLAYER_LEADERBOARD` TTL/version classes не имеют читателей | Есть мёртвые/заготовленные cache invalidations |
@@ -606,8 +660,10 @@ flowchart LR
 
 | Область | Файлы |
 |---|---|
-| Bootstrap и router | `src/index.ts`, `src/server.ts`, `src/router.ts` |
-| Сквозные плагины | `src/plugins/auth.ts`, `prisma.ts`, `redis.ts`, `swagger.ts` |
+| Bootstrap и router | `src/index.ts` (только listen), `src/app.ts` (фабрика `buildApp()`), `src/router.ts` |
+| Клиенты БД и кеша | `src/config/prisma.ts`, `src/config/redis.ts` — слоты модулей, `getPrisma()`/`getRedis()`, `closePrisma()`/`closeRedis()` |
+| Сквозные плагины | `src/plugins/auth.ts`, `prisma.ts`, `redis.ts`, `swagger.ts` — владеют жизненным циклом клиентов |
+| **Матчевый домен (источник истины вместо §3/§5/§6)** | `src/constants/enums.ts`, `prisma/schema.prisma`, `src/match/` |
 | Доменные слои | `src/<module>/*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.model.ts` |
 | Cache/rate limit | `src/utils/cache.ts`, `src/utils/rateLimit.ts` |
 | Refresh/blacklist | `src/auth/refreshStore.ts` |
@@ -615,5 +671,7 @@ flowchart LR
 | Runtime topology | `Dockerfile`, `docker-compose*.yml` |
 
 ## 12. Граница достоверности
+
+**Матчевый раздел документа недостоверен целиком** — см. пометку в шапке; источник истины по матчам: `src/constants/enums.ts`, `prisma/schema.prisma`, `src/match/`. Описание рантайма (фабрика `buildApp()`, единственные клиенты Prisma и Redis в слотах модулей под управлением плагинов) выправлено под текущий код.
 
 Дашборд построен статическим анализом репозитория. Он показывает намерение текущего кода, но не подтверждает, что черновая миграция применена к конкретной БД, Redis доступен в конкретном окружении или маршруты успешно прошли интеграционные тесты. Для operational dashboard следующим шагом нужны реальные OpenTelemetry/metrics-инструментация и подключённый collector.

@@ -1,0 +1,14 @@
+$kind: http-request
+name: /api/role/
+url: "{{baseUrl}}/api/role/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "<string>"
+    }
+examples: ./.resources/-api-role-.resources/examples
+order: 2000

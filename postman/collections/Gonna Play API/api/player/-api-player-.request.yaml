@@ -1,0 +1,9 @@
+$kind: http-request
+name: /api/player/
+url: "{{baseUrl}}/api/player/"
+method: POST
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-player-.resources/examples
+order: 3000

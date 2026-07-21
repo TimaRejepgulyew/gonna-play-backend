@@ -35,3 +35,5 @@ coverage/
 
 # backend-design skill: session working artifacts (skill and agents themselves stay tracked)
 .claude/.backend/ 
+# Claude Code task sessions (per-session scratch)
+.claude/.tasks/

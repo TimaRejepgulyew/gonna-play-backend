@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "email": "{{p1Email}}", "password": "{{p1Password}}" }'
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Вход игрока player1 (из сида) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("p1Token", d.accessToken);
+      pm.collectionVariables.set("p1UserId", d.user.id);
+      pm.collectionVariables.set("p1PlayerId", d.user.playerId);
+    language: text/javascript
+order: 3000

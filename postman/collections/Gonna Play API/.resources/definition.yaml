@@ -1,0 +1,4 @@
+$kind: collection
+description: Backend for the gonna-play football match app
+variables:
+  baseUrl: /

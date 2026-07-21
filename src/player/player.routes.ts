@@ -1,3 +1,5 @@
+import { Type } from "@sinclair/typebox";
+
 import { PlayerController } from "./player.controller.js";
 import {
   createPlayerSchema,
@@ -6,12 +8,15 @@ import {
 } from "./player.model.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
+const idParamsSchema = Type.Object({ id: Type.String() });
 
 export default async function playerRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  fastifyInstance: FastifyInstance
 ) {
-  const playerController = new PlayerController(server);
+  const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
+  const playerController = new PlayerController(fastifyInstance);
 
   server.get(
     "/list",
@@ -24,25 +29,31 @@ export default async function playerRoutes(
 
   server.get(
     "/:id",
-    { preHandler: [server.authenticate] },
+    { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
     playerController.getPlayer.bind(playerController)
   );
 
   server.post(
     "/",
-    { preHandler: [server.authenticate], schema: createPlayerSchema },
+    { preHandler: [server.authenticate], schema: { body: createPlayerSchema } },
     playerController.createPlayer.bind(playerController)
   );
 
   server.put(
     "/:id",
-    { preHandler: [server.authenticate], schema: updatePlayerSchema },
+    {
+      preHandler: [server.authenticate],
+      schema: { body: updatePlayerSchema, params: idParamsSchema },
+    },
     playerController.updatePlayer.bind(playerController)
   );
 
   server.delete(
     "/:id",
-    { preHandler: [server.authenticate, server.authorize("admin")] },
+    {
+      preHandler: [server.authenticate, server.authorize("admin")],
+      schema: { params: idParamsSchema },
+    },
     playerController.deletePlayer.bind(playerController)
   );
 }

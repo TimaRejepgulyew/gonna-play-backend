@@ -48,8 +48,7 @@ export const createPlayerSchema = Type.Object({
 });
 
 export const updatePlayerSchema = Type.Object({
-  id: Type.Number(),
-  name: Type.String(),
+  name: Type.Optional(Type.String()),
   level: Type.Optional(Type.Enum(PLAYER_LEVEL)),
   position: Type.Optional(Type.Enum(PLAYER_POSITION)),
   status: Type.Optional(Type.Enum(PLAYER_STATUS)),

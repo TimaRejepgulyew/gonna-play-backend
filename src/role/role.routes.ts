@@ -1,13 +1,18 @@
+import { Type } from "@sinclair/typebox";
+
 import { RoleController } from "./role.controller.js";
 import { assignRoleSchema, createRoleSchema } from "./role.model.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
+const idParamsSchema = Type.Object({ id: Type.String() });
 
 export default async function roleRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  fastifyInstance: FastifyInstance
 ) {
-  const roleController = new RoleController(server);
+  const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
+  const roleController = new RoleController(fastifyInstance);
 
   server.get(
     "/list",
@@ -26,7 +31,10 @@ export default async function roleRoutes(
 
   server.delete(
     "/:id",
-    { preHandler: [server.authenticate, server.authorize("admin")] },
+    {
+      preHandler: [server.authenticate, server.authorize("admin")],
+      schema: { params: idParamsSchema },
+    },
     roleController.deleteRole.bind(roleController)
   );
 

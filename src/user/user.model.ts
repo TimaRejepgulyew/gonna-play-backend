@@ -69,7 +69,7 @@ export const userListQuerySchema = Type.Composite([
 ]);
 
 export const updateUserSchema = Type.Object({
-  avatar: Type.Optional(Type.Number()),
+  avatar: Type.Optional(Type.String()),
   birthDate: Type.Optional(Type.String()),
   city: Type.Optional(Type.String()),
   country: Type.Optional(Type.String()),

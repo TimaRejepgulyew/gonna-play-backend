@@ -1,0 +1,40 @@
+$kind: http-request
+name: /api/match/list
+url: "{{baseUrl}}/api/match/list?page=1&limit=20&sort=<string>&order=asc&city=<\
+  string>&dateFrom=<dateTime>&dateTo=<dateTime>&format=FIVE_V_FIVE&level=JUNIOR\
+  &status=OPEN&fieldId=<integer>&organizerId=<integer>"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: limit
+    value: "20"
+  - key: sort
+    value: <string>
+  - key: order
+    value: asc
+    description: " (This can only be one of asc)"
+  - key: city
+    value: <string>
+  - key: dateFrom
+    value: <dateTime>
+  - key: dateTo
+    value: <dateTime>
+  - key: format
+    value: FIVE_V_FIVE
+    description: " (This can only be one of FIVE_V_FIVE)"
+  - key: level
+    value: JUNIOR
+    description: " (This can only be one of JUNIOR)"
+  - key: status
+    value: OPEN
+    description: " (This can only be one of OPEN)"
+  - key: fieldId
+    value: <integer>
+  - key: organizerId
+    value: <integer>
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-list.resources/examples
+order: 1000

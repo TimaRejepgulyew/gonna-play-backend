@@ -1,0 +1,9 @@
+$kind: http-request
+name: /api/role/list
+url: "{{baseUrl}}/api/role/list"
+method: GET
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-role-list.resources/examples
+order: 1000

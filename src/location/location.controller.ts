@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import LocationRepository from "./location.repository.js";
 import {
   CreateLocation,
@@ -8,15 +8,15 @@ import {
 } from "./location.service.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
 import type { PaginationQuery } from "@/types/pagination.js";
 
 export class LocationController {
   private locationService: LocationService;
 
   constructor(
-    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const locationRepository = new LocationRepository(prisma);
     this.locationService = new LocationService(locationRepository, server.log);
   }

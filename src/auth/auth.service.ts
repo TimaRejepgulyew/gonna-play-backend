@@ -17,14 +17,14 @@ import {
   blacklistAccess,
 } from "./refreshStore.js";
 
-import type { Logger } from "pino";
+import type { FastifyBaseLogger } from "fastify";
 import type { ErrorResponse } from "@/types/prisma.js";
 import type { CreateUser, UpdateUser } from "@/user/types.js";
 import type { CreatePlayer } from "@/player/player.service.js";
 import type { JwtPayload } from "@/plugins/auth.js";
 
-// Minimal contract over fastify-jwt's signer, decoupled from the ambient
-// jwt typing (which is skewed by legacy @types/fastify-jwt in this project).
+// Minimal contract over @fastify/jwt's signer, decoupled from the ambient
+// jwt typing so the service stays independent of Fastify's decorator surface.
 export interface TokenSigner {
   sign(payload: object, options?: { expiresIn?: string | number }): string;
   verify<T>(token: string): T;
@@ -68,7 +68,7 @@ export class AuthService {
     private userRepository: UserRepository,
     private playerRepository: PlayerRepository,
     private jwt: TokenSigner,
-    private logger: Logger
+    private logger: FastifyBaseLogger
   ) {}
 
   // Signs an access + refresh pair, each with its own `jti`. The refresh jti is

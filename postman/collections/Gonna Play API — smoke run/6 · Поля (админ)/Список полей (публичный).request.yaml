@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/field/list"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Список полей (публичный) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+    language: text/javascript
+order: 3000

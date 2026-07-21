@@ -1,0 +1,42 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/auth/register"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Accept: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "email": "<email>",
+        "password": "<string>",
+        "birthDate": "<string>",
+        "name": "<string>",
+        "phone": "<string>",
+        "city": "<string>",
+        "country": "<string>",
+        "gender": "<string>",
+        "createPlayer": "<boolean>",
+        "level": "JUNIOR",
+        "position": "GOALKEEPER"
+      }
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "user": {
+          "id": "<integer>",
+          "email": "<string>",
+          "name": "<string>",
+          "playerId": "<integer>"
+        },
+        "accessToken": "<string>",
+        "refreshToken": "<string>"
+      }
+order: 1000

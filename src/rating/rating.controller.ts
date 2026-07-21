@@ -1,17 +1,17 @@
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import RatingRepository from "./rating.repository.js";
 import { CreateRatingInput, RatingService } from "./rating.service.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
 
 export class RatingController {
   private ratingService: RatingService;
 
   constructor(
-    server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const ratingRepository = new RatingRepository(prisma);
     this.ratingService = new RatingService(ratingRepository, server.log);
   }

@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/match/:id
+url: "{{baseUrl}}/api/match/:id"
+method: GET
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-id.resources/examples
+order: 1000

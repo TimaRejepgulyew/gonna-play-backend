@@ -1,10 +1,13 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { PrismaClient } from "@prisma/client";
 
-// Decorators added by `src/plugins/auth.ts`. Kept in a .d.ts so skipLibCheck
-// tolerates the FastifyInstance declaration-merge in this project's type setup
-// (the legacy @types/fastify-jwt package augments FastifyInstance too).
+// Decorators added by `src/plugins/auth.ts` and `src/plugins/prisma.ts`. Kept in
+// a .d.ts so skipLibCheck tolerates the FastifyInstance declaration-merge in this
+// project's type setup (@fastify/jwt augments FastifyInstance too via its own
+// module declaration).
 declare module "fastify" {
   interface FastifyInstance {
+    prisma: PrismaClient;
     authenticate: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authorize: (
       ...roles: string[]

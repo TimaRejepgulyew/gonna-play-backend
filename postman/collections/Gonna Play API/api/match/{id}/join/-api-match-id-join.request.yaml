@@ -1,0 +1,19 @@
+$kind: http-request
+name: /api/match/:id/join
+url: "{{baseUrl}}/api/match/:id/join"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: json
+  content: |-
+    {
+      "position": "GOALKEEPER",
+      "team": "TEAM_A"
+    }
+examples: ./.resources/-api-match-id-join.resources/examples
+order: 1000

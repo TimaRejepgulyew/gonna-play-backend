@@ -1,0 +1,27 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/location/"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "name": "<string>",
+        "city": "<string>",
+        "address": "<string>",
+        "country": "<string>",
+        "latitude": "<number>",
+        "longitude": "<number>",
+        "surfaceType": "NATURAL_GRASS",
+        "capacity": "<integer>",
+        "openingHours": "<string>"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

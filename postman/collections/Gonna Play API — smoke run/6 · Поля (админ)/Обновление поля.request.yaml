@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/field/:id"
+method: PUT
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{fieldId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "name": "Smoke Field updated" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Обновление поля → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+    language: text/javascript
+order: 5000

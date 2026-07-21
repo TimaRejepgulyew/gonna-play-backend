@@ -1,0 +1,24 @@
+$kind: http-request
+name: /api/user/list
+url: "{{baseUrl}}/api/user/list?page=1&limit=20&sort=<string>&order=asc&city=<s\
+  tring>&isActive=<boolean>"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: limit
+    value: "20"
+  - key: sort
+    value: <string>
+  - key: order
+    value: asc
+    description: " (This can only be one of asc)"
+  - key: city
+    value: <string>
+  - key: isActive
+    value: <boolean>
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-user-list.resources/examples
+order: 1000

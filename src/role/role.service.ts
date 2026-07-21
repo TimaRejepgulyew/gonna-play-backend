@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import Role from "./role.model.js";
 
-import type { Logger } from "pino";
+import type { FastifyBaseLogger } from "fastify";
 import type { ErrorResponse } from "@/types/prisma.js";
 
 export interface AssignRoleInput {
@@ -24,7 +24,7 @@ export interface IRoleRepository {
 export class RoleService {
   constructor(
     private roleRepository: IRoleRepository,
-    private logger: Logger
+    private logger: FastifyBaseLogger
   ) {}
 
   listRoles(): Promise<Role[]> {

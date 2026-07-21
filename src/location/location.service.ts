@@ -11,7 +11,7 @@ import {
 } from "@/utils/cache.js";
 import Location from "./location.model.js";
 
-import type { Logger } from "pino";
+import type { FastifyBaseLogger } from "fastify";
 import type { ErrorResponse } from "@/types/prisma.js";
 import type {
   PaginatedResult,
@@ -53,7 +53,7 @@ export interface ILocationRepository {
 export class LocationService {
   constructor(
     private locationRepository: ILocationRepository,
-    private logger: Logger
+    private logger: FastifyBaseLogger
   ) {}
 
   getLocationList(

@@ -4,7 +4,7 @@ import { AuthController } from "./auth.controller.js";
 import { loginSchema, refreshSchema, registerSchema } from "./auth.model.js";
 
 import type { FastifyInstance } from "fastify";
-import type { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
 // Best-effort extraction of the login email for a per-account brute-force
 // counter (cache-design.md §6). Undefined -> that counter is skipped.
@@ -14,9 +14,10 @@ const loginEmail = (req: { body?: unknown }): string | undefined => {
 };
 
 export default async function authRoutes(
-  server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+  fastifyInstance: FastifyInstance
 ) {
-  const authController = new AuthController(server);
+  const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
+  const authController = new AuthController(fastifyInstance);
 
   server.post(
     "/register",

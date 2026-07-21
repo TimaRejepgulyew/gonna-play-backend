@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/rating/player/:playerId
+url: "{{baseUrl}}/api/rating/player/:playerId"
+method: GET
+pathVariables:
+  - key: playerId
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-rating-player-playerId.resources/examples
+order: 1000

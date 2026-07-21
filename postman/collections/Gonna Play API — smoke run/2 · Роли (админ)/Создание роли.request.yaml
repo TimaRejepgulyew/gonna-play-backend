@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/role/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "name": "smoke_role_{{runId}}" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Создание роли → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("roleId", d.id);
+    language: text/javascript
+order: 2000

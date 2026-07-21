@@ -1,0 +1,17 @@
+$kind: http-request
+name: /api/rating/
+url: "{{baseUrl}}/api/rating/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "matchId": "<integer>",
+      "ratedId": "<integer>",
+      "score": "<integer>",
+      "comment": "<string>"
+    }
+examples: ./.resources/-api-rating-.resources/examples
+order: 1000

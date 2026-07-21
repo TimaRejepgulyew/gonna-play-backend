@@ -1,0 +1,11 @@
+$kind: collection
+description: "Сценарный прогон всех эндпоинтов, собранный скриптом
+  scripts/postman-smoke.mjs из коллекции, сгенерированной из OpenAPI. Не
+  редактировать руками: npm run postman:generate пересобирает и его. Требует
+  dev-базу с сидом (admin@gonnaplay.com, player1@gonnaplay.com)."
+variables:
+  baseUrl: http://localhost:3000
+  adminEmail: admin@gonnaplay.com
+  adminPassword: Admin123!
+  p1Email: player1@gonnaplay.com
+  p1Password: Player123!

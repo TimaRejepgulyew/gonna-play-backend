@@ -1,6 +1,5 @@
-import { Logger } from "pino";
 
-import prisma from "@/config/prisma.js";
+import { getPrisma } from "@/config/prisma.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import UserRepository from "../user/user.repository.js";
@@ -19,8 +18,9 @@ export class PlayerController {
   private playerService: PlayerService;
 
   constructor(
-    _server: FastifyInstance<any, any, any, Logger, any, any, any, any>
+    _server: FastifyInstance
   ) {
+    const prisma = getPrisma();
     const playerRepository = new PlayerRepository(prisma);
     const userRepository = new UserRepository(prisma);
     this.playerService = new PlayerService(
@@ -60,7 +60,7 @@ export class PlayerController {
   }
 
   async updatePlayer(req: {
-    body: UpdatePlayer;
+    body: Omit<UpdatePlayer, "id">;
     params: { id: string };
     user?: unknown;
   }) {

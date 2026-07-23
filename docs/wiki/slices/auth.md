@@ -6,43 +6,50 @@
 
 Регистрация и вход по email с паролем, вход через Telegram (Apple — задел на будущее), выдача и ротация токенов, декораторы авторизации, единый обработчик ошибок, валидация окружения. Профили игроков (`Player`) — не здесь, это срез [player](player.md).
 
-## Владеет таблицами
+## Владеет данными
 
-- `AuthIdentity` (provider, providerUid, userId; `@@unique(provider, providerUid)`)
-- `RefreshToken` (userId, tokenHash unique, expiresAt, revokedAt?)
-- Сиды ролей `Role` / `UserRole`: admin, organizer, player.
+- Refresh-токены — в **Redis** (`src/auth/refreshStore.ts`), с ротацией и детекцией повторного использования. Таблицы `RefreshToken` нет и не заводим (Р2, пересмотр 2026-07-23).
+- Провайдеры входа — колонками на `User` (`telegramId`, `telegramUsername`, `isTelegramVerified`). Отдельной таблицы `AuthIdentity` нет; заводим её только под второй внешний провайдер (Apple).
+- Сиды ролей `Role` / `UserRole`. Сейчас сид создаёт `admin` / `user` / `player` (`prisma/seeds/seed.ts`); решение Р2 подразумевает роль `organizer` — расхождение имени роли нужно разрешить (переименовать сид или решение).
 
 ## Касается
 
-- `User` — создание при регистрации, чтение при входе; `password` делается необязательным (для аккаунтов только через Telegram/Apple).
+- `User` — создание при регистрации, чтение при входе. `password` в схеме обязательный (`String`); необязательным его делаем, только когда появится вход без пароля (Telegram/Apple как единственный способ).
 
-## Эндпоинты (под префиксом `/v1`)
+## Эндпоинты
 
-- `POST /v1/auth/register` — регистрация по email + паролю.
-- `POST /v1/auth/login` — вход по email + паролю.
-- `POST /v1/auth/telegram` — вход через Telegram (проверка подписи данных секретом бота, find-or-create по `AuthIdentity`).
-- `POST /v1/auth/refresh` — обмен refresh-токена на новую пару (ротация).
-- `POST /v1/auth/logout` — отзыв refresh-токена.
-- `GET /v1/auth/me` — текущий пользователь (за `authenticate`).
+Сейчас под префиксом `api/auth` (перенос под `/v1` — за срезом [versioning](versioning.md)):
+
+- `POST /api/auth/register` — регистрация; возвращает 201. Тело шире email+пароль: `birthDate` (обязательный), `phone?`, `city?`, `country?`, `gender?`, флаг `createPlayer` с `level?`/`position?` (может сразу создать `Player`).
+- `POST /api/auth/login` — вход по email + паролю.
+- `POST /api/auth/refresh` — обмен refresh-токена на новую пару (ротация).
+- `POST /api/auth/logout` — отзыв refresh-токена.
+- `GET /api/auth/me` — текущий пользователь (за `authenticate`).
+- `POST /api/auth/telegram` — вход через Telegram. **Ещё не реализован** (маршрута нет).
 
 ## Зависит от
 
 Ничего. Брать можно сразу.
 
-## Что сделать
+Уже сделано: декораторы `authenticate` / `authorize(...roles)` (`src/plugins/auth.ts`), обработчики register/login/refresh/logout/me (`src/auth/auth.service.ts`), выпуск и ротация refresh в Redis с детекцией повторного использования, guard в `env.ts` против дефолтного JWT-секрета в продакшене, rate-limit на входе (register 5/час, login 10/15мин, refresh 30/15мин).
 
-1. Схема `AuthIdentity`, `RefreshToken`; `User.password` → необязательный; миграция.
-2. `plugins/auth.ts`: декоратор `authenticate` (проверяет access-JWT, кладёт пользователя в запрос) и фабрика `authorize(...roles)` по `UserRole`. Сейчас `src/routes/auth.ts` ссылается на `server.authenticate`, но декоратор нигде не объявлен — объявить.
-3. Реализовать пустые обработчики входа (сейчас `login`/`register` в `src/routes/auth.ts` ничего не возвращают). Хеширование пароля — argon2id.
-4. `token.service`: подпись access-JWT (~15 мин), выпуск и ротация refresh (хеш в `RefreshToken`, ~30 дней).
-5. `plugins/errorHandler.ts`: единый перевод доменных ошибок в HTTP-коды и устойчивый код ошибки.
-6. `env.ts`: валидация переменных при старте, без запасного секрета JWT в продакшене (сейчас есть небезопасный fallback).
-7. Сид ролей admin/organizer/player.
+Остаётся сделать:
+
+1. Хеширование пароля — перевести с текущего PBKDF2 (`src/auth/password.ts`) на argon2id.
+2. `token.service`: сверить срок жизни access-JWT — сейчас дефолт 24 часа (`src/config/env.ts`), решение Р2 предполагает короткий (~15 мин); привести к согласованному значению.
+3. `plugins/errorHandler.ts`: единый перевод доменных ошибок в HTTP-коды и устойчивый код ошибки (сейчас — инлайновый `preSerialization`-хук в `src/app.ts`).
+4. `env.ts`: убрать сам запасной секрет JWT (`DEV_JWT_SECRET`), а не только запрет на него в продакшене.
+5. Вход через Telegram: маршрут `POST /api/auth/telegram` (проверка подписи данных секретом бота, find-or-create по колонкам `telegramId` на `User`).
+6. Разрешить имя роли: сид создаёт `user`, решение Р2 говорит `organizer`.
+8. `POST /v1/auth/reset-password`: установки нового пароля по одноразовому токену нет — вместе с п. 7 снят экран `ResetPassword`.
+9. `POST /v1/auth/verify-email`: подтверждения email нет, `User.isEmailVerified` выставить некому — снят экран `ConfirmEmail`.
+10. `auth.model.ts` — дефект: при нарушении схемы тела наружу уходит HTTP 500 вместо 400. Схема ошибки объявляет `code: Type.Integer()` (`src/auth/auth.model.ts:19`), а Fastify кладёт туда строковый `FST_ERR_VALIDATION`, и сериализация ответа падает с `FST_ERR_FAILED_ERROR_SERIALIZATION`. Воспроизведено живыми запросами на `POST /api/auth/login` и `POST /api/auth/register` при отсутствующем поле, коротком пароле и неверном формате email. Чинится строковым `code` в схеме ошибки либо общим `errorHandler` (п. 3).
+11. `User.password` — дефект безопасности: `GET /api/player/:id` отдаёт хеш пароля. Подробности и остальные затронутые маршруты — в срезе [player](player.md), пункт 1.
 
 ## Готово когда
 
-Можно зарегистрироваться, войти, обновить и отозвать токены; `GET /v1/auth/me` отдаёт текущего пользователя; защищённый маршрут отклоняет запрос без токена; `authorize` пускает только нужные роли; ошибки идут через единый обработчик.
+Можно зарегистрироваться, войти, обновить и отозвать токены (сделано); `GET /api/auth/me` отдаёт текущего пользователя (сделано); защищённый маршрут отклоняет запрос без токена, `authorize` пускает только нужные роли (сделано); хеширование argon2id, вход через Telegram, сброс/подтверждение пароля и единый обработчик ошибок — **остаётся**.
 
 ## Статус
 
-⬜ не начат. Обновляй в [../PROGRESS.md](../PROGRESS.md).
+🟡 в работе: ядро входа и токенов работает; остаются argon2id, Telegram, сброс и подтверждение email, единый `errorHandler` и дефекты из пунктов 10–11. Обновляй в [../PROGRESS.md](../PROGRESS.md).

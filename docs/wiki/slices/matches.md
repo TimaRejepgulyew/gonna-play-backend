@@ -8,15 +8,14 @@
 
 ## Владеет таблицами
 
-- `Match` (organizerId, venueId?, format, startsAt, min/maxPlayers, price?, visibility, status, skillMin/Max?, …)
-- `MatchParticipant` (matchId, userId, status, team?, position?, paymentStatus; `@@unique(matchId, userId)`)
+- `Match` (organizerId → `Player`, fieldId → `Field`, title, format, startsAt, durationMin, min/maxPlayers, price?, currency?, visibility, status, skillMin/Max?, teamsBalancedAt?, …)
+- `MatchParticipant` (matchId, playerId, status, team?, position?, paymentStatus; `@@unique(matchId, playerId)`)
 - Перечисления: `MATCH_FORMAT`, `MATCH_STATUS`, `MATCH_VISIBILITY`, `PARTICIPANT_STATUS`, `TEAM_SIDE`, `PAYMENT_STATUS`.
 
 ## Касается
 
-- `User` — организатор и участник.
-- `Player` — уровень и позиция для допуска и последующей разбивки (только чтение).
-- `Venue` — `Match.venueId` (только чтение; сам срез площадок — [venues-media](venues-media.md)).
+- `Player` — и организатор, и участник ссылаются на `Player` (не на `User`); уровень и позиция для допуска и последующей разбивки.
+- `Field` — `Match.fieldId` (только чтение; сам срез площадок — [venues-media](venues-media.md)).
 
 ## Эндпоинты (под префиксом `/v1`)
 
@@ -40,6 +39,11 @@
 2. `match.service`: создание, изменение, переходы статуса (`DRAFT → OPEN → FULL → CONFIRMED → IN_PROGRESS → FINISHED`, `CANCELLED` почти из любого), проверка права владельца (редактирует и отменяет только организатор).
 3. `participant.service`: запись с подсчётом мест **внутри транзакции** (иначе одновременная запись превысит лимит), лист ожидания, продвижение первого из очереди при выходе, отметка о приходе.
 4. Репозитории целиком на Prisma, схемы TypeBox, регистрация маршрутов в `src/router.ts` под `/v1`.
+5. `getMatch` — дефект: карточка матча отдаёт участников без фильтра по занятым статусам, тогда как список отдаёт уже отфильтрованный счётчик. `_count.participants` в списке считает только `SEATED_STATUSES` (`src/match/match.repository.ts:101`), а `participants` в детали приходит вместе с `WAITLISTED`, `NO_SHOW` и `CANCELLED` (`:125`). Живьём у матча id 3 это даёт `_count.participants: 2` против массива длиной 3. Клиент вынужден фильтровать сам, чтобы список и деталь не расходились в счёте у одного матча; две семантики одного числа нужно свести к одной на сервисе.
+6. Облегчённые данные участников в ответе `GET /api/match/list`: приходит только агрегат `_count.participants` (`src/match/match.repository.ts:97-104`), поэтому показать аватары в карточке списка нечем, а добирать их запросом на элемент — N+1. Клиент из-за этого снял ряд аватаров в карточке. Нужен либо усечённый срез участников в элементе списка, либо пакетный маршрут.
+7. Атрибуты матча (произвольные метки): в схеме `Match` их нет, положить некуда — клиент удалил свои `GameAttribute`.
+8. Число команд и число игроков в команде отдельно от `format`: `MATCH_FORMAT` свёрнут в единственный enum (`prisma/schema.prisma:227`), отдельных `teamCount` и `playerPerTeam` нет. Пока формат ровно «пять на пять», разложить его на два числа нечем — клиент оба поля снял.
+9. `GET /v1/matches/mine` (или фильтр `participantId` в списке): выборки «матчи, в которых я участвую» одним запросом нет, собрать её на клиенте можно только перебором. Клиент удалил свой хук `useParticipatingGames` за отсутствием маршрута.
 
 ## Готово когда
 

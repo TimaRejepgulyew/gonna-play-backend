@@ -19,7 +19,7 @@
 - `<resource>.repository.ts` — доступ к данным только через Prisma, реализует `IXRepository`.
 - `<resource>.model.ts` — схемы TypeBox (`createXSchema`, `updateXSchema`) и доменный класс.
 
-**Оговорка про эталон.** `src/player/player.repository.ts` сейчас наполовину сломан: `getPlayer`, `updatePlayer`, `deletePlayer` работают через `Map` в памяти, а не через Prisma. Это **не** образец. Правильный шаблон — метод `createPlayer`, который ходит в `this.prisma`. Любой новый репозиторий пишется целиком на Prisma. Починка `player`-репозитория — отдельный срез [slices/player.md](slices/player.md).
+`src/player/player.repository.ts` целиком на Prisma и годится как образец репозитория (`Map` в памяти давно убран). Любой новый репозиторий пишется так же — доступ к данным только через `this.prisma`.
 
 ## Регистрация маршрутов
 
@@ -51,7 +51,7 @@
 
 ## Тесты
 
-Тесты пишутся **по коду**, а не по вики: расхождения документации с реализацией вне матчевого домена ещё не выправлены (единый `Venue` в `decisions.md` против реализованных `Location` + `Field`, отсутствие `PlayerRating`, утверждение об отсутствии Redis в `architecture.md`), и опираться на них при написании теста нельзя.
+Тесты пишутся **по коду**. Вика приведена к реализации 2026-07-23 (площадки `Location + Field`, refresh в Redis — см. [decisions.md](decisions.md)), так что теперь ей можно доверять по этим темам. Единственное намеренное расхождение — модуль `rating` / таблица `player_ratings`: код их содержит, но решение Р1 их отклоняет и они помечены к удалению, поэтому опирать на них тесты не нужно.
 
 **Раскладка.** Всё живёт в `tests/`: `tests/unit/` — юнит-проект, `tests/integration/` — интеграционный, `tests/helpers/` — общие помощники (`createTestApp`, `createActor`, `relogin`, `resetDatabase`), `tests/setup/` — файлы настройки проектов. Два проекта описаны в `vitest.config.ts` и запускаются раздельно: `npm run test:unit` и `npm run test:integration`.
 

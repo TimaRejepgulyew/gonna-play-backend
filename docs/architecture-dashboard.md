@@ -2,6 +2,8 @@
 
 > Срез репозитория на 2026-07-20. Этот документ описывает **реально подключённый код**, а не целевую архитектуру из старой wiki. Источники правды: `src/router.ts`, `src/**/*.routes.ts`, `src/**/*.controller.ts`, `src/**/*.service.ts`, `src/**/*.repository.ts`, `prisma/schema.prisma`, `src/utils/cache.ts` и Docker Compose-файлы.
 
+> **Правки 2026-07-23.** По итогам сплошной сверки исправлены непомеченные устаревшие места вне матчевого раздела: имена полей `Match` в ER-диаграмме §4 и в сортировке §3 (`startsAt`/`durationMin`/`skillMin/Max`), состав `MATCH_PARTICIPANTS`, список индексов, риски §10 про compose-Redis, `fastify-jwt` и схемы роутов (сняты как опровергнутые). Модуль `rating` здесь показан как фактически существующий, но это отклонение от решения Р1 (к удалению). Матчевый ⛔-раздел ниже намеренно не трогали. Целевая модель и решения — в приведённой к коду [wiki](wiki/README.md).
+
 > ## ⛔ НЕДОСТОВЕРНО: всё про матчи и участие
 >
 > **Не пишите по этому документу код и тесты матчевого домена.** Разделы «Matches и participation» (§3), матчевые строки таблицы enum-ов (§4), «Подтверждение участника и заполнение матча» (§5) и обе state machine (§6) описывают **инвайт-модель, которой в коде никогда не было**: приглашения, заявки, статусы `INVITED`/`REQUESTED`/`DECLINED`/`LEFT`, статусы матча `ONGOING`/`COMPLETED`, метод `resolveTransition`, эндпоинты `/invite` и `/participants/:pid/accept|decline`. Ничего из этого не существует. Прогон тестового покрытия из-за этого дважды переделывал работу с нуля.
@@ -18,7 +20,7 @@
 
 | Показатель | Фактическое состояние |
 |---|---|
-| Runtime | Node.js 22, TypeScript, ESM |
+| Runtime | Node.js 24 (`engines.node >=22`), TypeScript, ESM |
 | HTTP | Fastify 5, TypeBox-схемы |
 | Доменные модули | 8: auth, user, player, location, field, match, rating, role |
 | Маршруты | 44 доменных + `/ping` + `/docs/json` |
@@ -133,7 +135,7 @@ flowchart TD
 | player | `createdAt`, `updatedAt`, `name`, `level` |
 | location | `createdAt`, `updatedAt`, `name`, `city` |
 | field | `createdAt`, `updatedAt`, `name`, `format` |
-| match | `startTime`, `createdAt`, `price`, `maxPlayers` |
+| match | `startsAt`, `createdAt`, `price`, `maxPlayers` |
 
 Легенда доступа:
 
@@ -202,9 +204,11 @@ flowchart TD
 
 ### Ratings и Roles
 
+> Модуль `rating` фактически в коде есть, но это **отклонение от решения Р1** (только самооценка, оценок после матча быть не должно) — помечен к удалению, см. [wiki/decisions.md](wiki/decisions.md) и [wiki/PROGRESS.md](wiki/PROGRESS.md).
+
 | Метод и путь | Доступ | Назначение / правило |
 |---|---|---|
-| `POST /api/rating` | auth + player | Оценка 1–5 после COMPLETED; оба игрока должны быть CONFIRMED; self-rating запрещён |
+| `POST /api/rating` | auth + player | Оценка 1–5 после `FINISHED`; оба игрока должны быть CONFIRMED; self-rating запрещён |
 | `GET /api/rating/player/:playerId` | public | Средняя оценка, количество и список оценок игрока |
 | `GET /api/rating/match/:matchId` | participant/admin | Все оценки матча |
 | `DELETE /api/rating/:id` | author/admin | Удалить свою оценку |
@@ -297,13 +301,19 @@ erDiagram
       int id PK
       int organizerId FK
       int fieldId FK
-      datetime startTime
-      int durationMinutes
+      string title
+      datetime startsAt
+      int durationMin
       enum format
-      enum requiredLevel
-      decimal price
+      int minPlayers
       int maxPlayers
+      decimal price
+      string currency
+      enum visibility
       enum status
+      enum skillMin
+      enum skillMax
+      datetime teamsBalancedAt
     }
     MATCH_PARTICIPANTS {
       int id PK
@@ -312,6 +322,8 @@ erDiagram
       enum position
       enum team
       enum status
+      enum paymentStatus
+      datetime joinedAt
       string matchId_playerId UK
     }
     PLAYER_RATINGS {
@@ -358,8 +370,8 @@ erDiagram
 - `user_roles(userId, roleId)` — одна роль назначается пользователю один раз.
 - `match_participants(matchId, playerId)` — одна запись игрока на матч.
 - `player_ratings(matchId, raterId, ratedId)` — одна оценка конкретного игрока конкретным автором за матч.
-- Списки матчей поддержаны индексами по `organizerId`, `fieldId`, `status`, `format`, `requiredLevel`, `startTime` и составным `(status, startTime)`.
-- Для участников есть индексы `playerId` и `(matchId, status)`; для рейтингов — `ratedId`, `raterId`, `matchId`.
+- Списки матчей поддержаны индексами по `organizerId`, `fieldId`, `status`, `format`, `skillMin`, `skillMax`, `startsAt` и составным `(status, startsAt)`.
+- Для участников есть индексы `playerId` и `(matchId, status, joinedAt)`; для рейтингов — `ratedId`, `raterId`, `matchId`.
 
 ### Доменные enum
 
@@ -545,9 +557,9 @@ stateDiagram-v2
 
 | Класс | Физический шаблон после `gp:` | TTL | Читатель | Инвалидация |
 |---|---|---:|---|---|
-| match list | `match:list:g{version}:{filterHash}` | 30 c | `GET /match/list` | create/update/cancel; accept/decline/leave |
-| match detail | `match:detail:{id}` | 60 c | `GET /match/:id` | update/cancel; любая participation mutation |
-| participants | `match:participants:{matchId}:g{version}:{hash}` | 30 c | `GET /match/:id/participants` | invite/join/accept/decline/leave |
+| match list | `match:list:g{version}:{filterHash}` | 30 c | `GET /match/list` | create/update/publish/confirm/cancel; join/leave |
+| match detail | `match:detail:{id}` | 60 c | `GET /match/:id` | update/publish/confirm/cancel; любая participation mutation |
+| participants | `match:participants:{matchId}:g{version}:{hash}` | 30 c | `GET /match/:id/participants` | join/leave/confirm/check-in |
 | field list | `field:list:g{version}:{hash}` | 300 c | `GET /field/list` | field create/update/delete |
 | field detail | `field:detail:{id}` | 300 c | `GET /field/:id` | field update/delete |
 | location list | `location:list:g{version}:{hash}` | 600 c | `GET /location/list` | location create/update/delete |
@@ -648,13 +660,13 @@ flowchart LR
 | ~~средний~~ снято | ~~Создаются два PrismaClient: plugin и singleton~~ — **исправлено рефакторингом**: клиент один, живёт в слоте `src/config/prisma.ts`, плагин декорирует его же и закрывает через `closePrisma()` | `server.prisma` и клиент репозиториев — один объект; `onClose` закрывает именно его |
 | высокий | Матчевый раздел этого документа (§3 Matches, матчевые enum-ы §4, §5 подтверждение участника, §6 state machines) описывает несуществующую инвайт-модель | Любой, кто пишет по нему код или тесты, делает работу дважды; переработка отложена до стабилизации `src/match/*` |
 | средний | Distributed tracing, metrics и readiness отсутствуют | Нет end-to-end диагностики latency/errors и dependency health |
-| средний | Base/test Compose не содержат Redis; base Compose также не задаёт `HOST=0.0.0.0` | Поведение и доступность отличаются от dev/prod |
+| ~~средний~~ снято | ~~Base/test Compose не содержат Redis; base Compose не задаёт `HOST=0.0.0.0`~~ — **опровергнуто 2026-07-23**: `docker-compose.yml` задаёт `HOST=0.0.0.0` и сервис `redis`, `docker-compose.test.yml` тоже содержит `redis` с healthcheck | — |
 | средний | `@fastify/helmet` установлен, но не зарегистрирован | Security headers, описанные в старой wiki, не выдаются приложением |
-| средний | Используется deprecated package `fastify-jwt`; Fastify печатает warning и рекомендует `@fastify/jwt` | Обновление Fastify/Node может превратить совместимость в runtime-проблему |
-| средний | Player route schemas передаются не как `{body: ...}`, update schema требует `id` в body | Фактическая HTTP-валидация/контракт могут расходиться с намерением |
-| средний | `updateUserSchema.avatar` — number, а Prisma/model — string | OpenAPI/runtime validation расходятся со схемой БД |
+| ~~средний~~ снято | ~~Используется deprecated package `fastify-jwt`~~ — **опровергнуто 2026-07-23**: в коде `@fastify/jwt@^10.2.0` (`package.json`), импорт в `src/plugins/auth.ts` | — |
+| ~~средний~~ снято | ~~Player route schemas передаются не как `{body: ...}`, update schema требует `id` в body~~ — **исправлено**: `player.routes.ts` передаёт `{ schema: { body: ... } }`, `updatePlayerSchema` без `id` | — |
+| ~~средний~~ снято | ~~`updateUserSchema.avatar` — number~~ — **исправлено**: `avatar` теперь `Type.Optional(Type.String())` (`src/user/user.model.ts`) | — |
 | низкий | `FIELD_SCHEDULE` и `PLAYER_LEADERBOARD` TTL/version classes не имеют читателей | Есть мёртвые/заготовленные cache invalidations |
-| низкий | Старая `docs/wiki` описывает Redis как отсутствующий и перечисляет несуществующие cron/S3/Telegram/feature flags | Новые участники могут принять roadmap за реализованную систему |
+| ~~низкий~~ обновлено | ~~Старая `docs/wiki` описывает Redis как отсутствующий и перечисляет несуществующие cron/S3/Telegram/feature flags~~ — вика приведена к коду 2026-07-23: Redis описан, нереализованное помечено как целевое | — |
 
 ## 11. Где смотреть код
 

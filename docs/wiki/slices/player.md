@@ -8,33 +8,32 @@
 
 ## Владеет таблицами
 
-- `Player` (уже существует: userId unique, level, position, status).
+- `Player` (`name` обязательный, `userId?` unique, `level?`, `position?`, `status?` по умолчанию `ACTIVE`).
 
 ## Касается
 
 - `User` — чтение при связывании профиля.
 
-## Эндпоинты (под префиксом `/v1`)
+## Эндпоинты
 
-Маршруты уже есть в `src/player/player.routes.ts`, перенести под `/v1`:
+Маршруты в `src/player/player.routes.ts`, сейчас под префиксом `api/player` (перенос под `/v1` — за срезом [versioning](versioning.md)):
 
-- `GET /v1/players/list`, `GET /v1/players/:id`, `POST /v1/players`, `PUT /v1/players/:id`, `DELETE /v1/players/:id`.
+- `GET /api/player/list`, `GET /api/player/:id`, `POST /api/player`, `PUT /api/player/:id`, `DELETE /api/player/:id` (`DELETE` под `authorize("admin")`).
 
 ## Зависит от
 
-Ничего. Брать можно сразу, параллельно с `auth` и `versioning`.
+Ничего. Основная работа сделана.
 
 ## Что сделать
 
-1. Переписать `getPlayer`, `updatePlayer`, `deletePlayer` в `src/player/player.repository.ts` с `Map` в памяти (`playerTable`) на Prisma. Образец правильного метода — `createPlayer` в том же файле.
-2. Убрать `playerTable` полностью.
-3. Свести обработку ошибок к единому виду (после появления `errorHandler` из среза `auth`).
-4. Тесты репозитория и сервиса.
+1. **Дефект безопасности (в первую очередь):** `getPlayer`, `getPlayerList`, `updatePlayer` подмешивают аккаунт как `include: { user: true }` без `select`/`omit` (`src/player/player.repository.ts:47, 78-81, 111`), из-за чего `GET /api/player/:id`, `GET /api/player/list` и `PUT /api/player/:id` отдают наружу `user.password` (хеш), `telegramId` и прочие поля аккаунта. Закрыть `omit: { password: true }` (как уже сделано в `src/user/user.repository.ts`) либо response-схемой, срезающей лишние поля.
+2. Перенос маршрутов под `/v1` — вместе со срезом `versioning`.
+3. Свести обработку ошибок к единому виду — после появления `errorHandler` из среза `auth`.
 
 ## Готово когда
 
-Все методы репозитория ходят в Prisma, `Map` в памяти нет, CRUD работает против реальной базы.
+Репозиторий целиком на Prisma (сделано), CRUD работает против реальной базы (сделано), ответы не содержат хеш пароля и лишних полей аккаунта (**остаётся сделать**).
 
 ## Статус
 
-⬜ не начат. Обновляй в [../PROGRESS.md](../PROGRESS.md).
+🟡 в основном готов: репозиторий на Prisma, CRUD работает; остаётся закрыть утечку полей аккаунта. Обновляй в [../PROGRESS.md](../PROGRESS.md).

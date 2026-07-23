@@ -2,7 +2,9 @@
 
 Диаграмма: [../diagrams/B-domain.png](../diagrams/B-domain.png)
 
-Это источник правды по модели данных. Реальный `prisma/schema.prisma` пока отстаёт от неё (содержит только `Role`, `User`, `UserRole`, `Player`) — привести схему в соответствие с этим документом предстоит на этапе реализации. Где эта модель расходится с базовым справочником скила — см. [decisions.md](decisions.md); приоритет у этого документа.
+Это источник правды по модели данных. Реализованная часть схемы (`Role`, `User`, `UserRole`, `Player`, `Location`, `Field`, `Match`, `MatchParticipant` и все перечисления, кроме `NOTIFICATION_*`) приведена к этому документу; `Notification` и `FeatureFlag` — целевые, в схеме их пока нет (ждут своих срезов). Где модель расходится с базовым справочником скила — см. [decisions.md](decisions.md); приоритет у этого документа.
+
+> В схеме сейчас есть таблица `player_ratings` (`PlayerRating`), которой в этой модели нет намеренно: оценки после матча отклонены решением Р1, код с ними — отклонение к удалению (см. [decisions.md](decisions.md) и [PROGRESS.md](PROGRESS.md)).
 
 Служебные поля есть у каждой модели и ниже не повторяются: `id Int @id @default(autoincrement())`, `createdAt`, `updatedAt`.
 
@@ -10,29 +12,29 @@
 
 ### Идентичность и доступ
 
-**User** — учётная запись и личность для входа. Ключевые поля: `email` (уникальный), `password?` (хеш, необязателен для аккаунтов только через Telegram/Apple), `phone?`, `avatar?` (ключ объекта в хранилище), `isEmailVerified`, `isPhoneVerified`, `isTelegramVerified`, плюс профиль (`name?`, `birthDate`, `city?`, `country?`, `gender?`) и `isActive`. Внешние провайдеры входа вынесены в `AuthIdentity`, а не в колонки `User`.
+**User** — учётная запись и личность для входа. Ключевые поля: `email` (уникальный), `password` (хеш, обязательный), `phone?`, `avatar?` (строка; в перспективе — ключ объекта в хранилище), `isEmailVerified`, `isPhoneVerified`, `isTelegramVerified`, привязка Telegram колонками `telegramId?` / `telegramUsername?`, плюс профиль (`name?`, `birthDate`, `city?`, `country?`, `gender?`) и `isActive`. Провайдеры входа хранятся колонками на `User`, а не в отдельной таблице (Р2, пересмотр 2026-07-23).
 
-**AuthIdentity** — привязка внешнего провайдера входа к пользователю: `userId`, `provider` (telegram | apple), `providerUid`. `@@unique(provider, providerUid)`. Email с паролем остаётся на `User`, а Telegram и Apple — строки здесь.
-
-**RefreshToken** — refresh-токены для обновления сессии: `userId`, `tokenHash` (уникальный), `expiresAt`, `revokedAt?`. Ротация при каждом использовании.
+**Хранение сессий и провайдеров (не таблицы БД).** Refresh-токены живут в **Redis** (`src/auth/refreshStore.ts`), таблицы `RefreshToken` нет. Отдельной таблицы `AuthIdentity` тоже нет — Telegram привязан колонками на `User`. `AuthIdentity` — задел на будущее под второй внешний провайдер (Apple), см. [decisions.md](decisions.md) Р2.
 
 **Role** — прикладная роль доступа: `name` (уникальный). **UserRole** — связь пользователя и роли: `userId`, `roleId`, `@@unique(userId, roleId)`. Это роли в системе (админ, организатор, игрок), их нельзя путать с позицией игрока на поле.
 
 ### Игрок
 
-**Player** — игровой профиль, один-к-одному с `User`: `userId` (уникальный), `level` (`PLAYER_LEVEL`), `position` (`PLAYER_POSITION`, основная позиция), `status` (`PLAYER_STATUS`).
+**Player** — игровой профиль, один-к-одному с `User`: `name` (обязательный), `userId?` (уникальный, `SetNull` при удалении пользователя), `level?` (`PLAYER_LEVEL`), `position?` (`PLAYER_POSITION`, основная позиция), `status?` (`PLAYER_STATUS`, по умолчанию `ACTIVE`). Организатор и участник матча ссылаются на `Player`, а не на `User`.
 
-### Площадки и медиа
+### Площадки
 
-**Venue** — площадка: `name`, `city?`, `address?`, `latitude?`, `longitude?`, `capacity?`.
+**Location** — комплекс площадки: `name`, `city` (обязательный, индекс), `address?`, `country?`, `latitude?`, `longitude?`, `surfaceType?` (`SURFACE_TYPE`, покрытие по умолчанию), `capacity?`, `openingHours?`.
 
-**VenuePhoto** — фотографии площадки, много на одну: `venueId`, `key` (объект в хранилище), `sortOrder`.
+**Field** — конкретное поле внутри комплекса, много на одну `Location`: `locationId`, `name`, `format` (`MATCH_FORMAT`), `surface?` (`SURFACE_TYPE`), `width?`, `length?`, `isIndoor` (по умолчанию `false`). Матч ссылается именно на `Field`.
+
+> Медиа (фото площадок, аватары в хранилище) в схеме пока нет — это TODO среза `venues-media`. `VenuePhoto` и модуль `storage` ещё не заведены.
 
 ### Матчи
 
-**Match** — матч: `organizerId` (User), `venueId?`, `title`, `format` (`MATCH_FORMAT`), `startsAt`, `durationMin`, `minPlayers`, `maxPlayers`, `price?` (Decimal), `currency?`, `visibility` (`MATCH_VISIBILITY`), `status` (`MATCH_STATUS`), `skillMin?` / `skillMax?` (`PLAYER_LEVEL`, фильтр по уровню), `description?`, `teamsBalancedAt?`.
+**Match** — матч: `organizerId` (Player), `fieldId` (Field), `title`, `format` (`MATCH_FORMAT`), `startsAt`, `durationMin` (по умолчанию 60), `minPlayers`, `maxPlayers`, `price?` (Decimal 10,2), `currency?` (varchar 3), `visibility` (`MATCH_VISIBILITY`, по умолчанию `PUBLIC`), `status` (`MATCH_STATUS`, по умолчанию `DRAFT`), `skillMin?` / `skillMax?` (`PLAYER_LEVEL`, фильтр по уровню), `description?`, `teamsBalancedAt?`.
 
-**MatchParticipant** — запись игрока на матч: `matchId`, `userId`, `status` (`PARTICIPANT_STATUS`), `team?` (`TEAM_SIDE`, ставит разбивка), `position?` (`PLAYER_POSITION`, позиция на этот матч, может отличаться от профильной), `paymentStatus` (`PAYMENT_STATUS`), `joinedAt`. `@@unique(matchId, userId)`.
+**MatchParticipant** — запись игрока на матч: `matchId`, `playerId`, `status` (`PARTICIPANT_STATUS`), `team?` (`TEAM_SIDE`, ставит разбивка), `position?` (`PLAYER_POSITION`, позиция на этот матч, может отличаться от профильной), `paymentStatus` (`PAYMENT_STATUS`, по умолчанию `UNPAID`), `joinedAt`. `@@unique(matchId, playerId)`.
 
 ### Уведомления
 
@@ -44,15 +46,13 @@
 
 ## Связи
 
-- User — Player: один-к-одному.
-- User — AuthIdentity: один-ко-многим (несколько провайдеров на пользователя).
-- User — RefreshToken: один-ко-многим.
+- User — Player: один-к-одному (`Player.userId` необязателен, `SetNull`).
 - User — Role: многие-ко-многим через UserRole.
-- User — Match: один-ко-многим (как организатор).
-- Match — MatchParticipant — User: матч и пользователи многие-ко-многим через MatchParticipant.
-- Match — Venue: многие-к-одному.
-- Venue — VenuePhoto: один-ко-многим.
-- User — Notification: один-ко-многим.
+- Player — Match: один-ко-многим (как организатор, связь `MatchOrganizer`).
+- Match — MatchParticipant — Player: матч и игроки многие-ко-многим через MatchParticipant.
+- Location — Field: один-ко-многим.
+- Match — Field: многие-к-одному (`Match.fieldId`, `onDelete: Restrict`).
+- User — Notification: один-ко-многим (целевая связь, `Notification` ещё не в схеме).
 
 ## Перечисления
 
@@ -61,7 +61,8 @@
 - `PLAYER_LEVEL`: junior, middle, senior, legend — **уже есть** в схеме.
 - `PLAYER_POSITION`: goalkeeper, defender, midfielder, forward — **уже есть**.
 - `PLAYER_STATUS`: active, inactive — **уже есть**.
-- `MATCH_FORMAT`: FIVE, SEVEN, ELEVEN.
+- `MATCH_FORMAT`: FIVE, SEVEN, ELEVEN (значения в БД `5x5`, `7x7`, `11x11`).
+- `SURFACE_TYPE`: natural_grass, artificial_grass, futsal, concrete, dirt.
 - `MATCH_STATUS`: DRAFT, OPEN, FULL, CONFIRMED, IN_PROGRESS, FINISHED, CANCELLED.
 - `MATCH_VISIBILITY`: PUBLIC, PRIVATE.
 - `PARTICIPANT_STATUS`: REGISTERED, WAITLISTED, CONFIRMED, CHECKED_IN, NO_SHOW, CANCELLED.

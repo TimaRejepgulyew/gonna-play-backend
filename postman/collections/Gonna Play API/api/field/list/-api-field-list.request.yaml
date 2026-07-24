@@ -1,7 +1,7 @@
 $kind: http-request
 name: /api/field/list
 url: "{{baseUrl}}/api/field/list?page=1&limit=20&sort=<string>&order=asc&locati\
-  onId=<integer>&format=FIVE_V_FIVE&surface=NATURAL_GRASS&isIndoor=<boolean>"
+  onId=<integer>&format=FIVE&surface=NATURAL_GRASS&isIndoor=<boolean>"
 method: GET
 queryParams:
   - key: page
@@ -16,8 +16,8 @@ queryParams:
   - key: locationId
     value: <integer>
   - key: format
-    value: FIVE_V_FIVE
-    description: " (This can only be one of FIVE_V_FIVE)"
+    value: FIVE
+    description: " (This can only be one of FIVE)"
   - key: surface
     value: NATURAL_GRASS
     description: " (This can only be one of NATURAL_GRASS)"

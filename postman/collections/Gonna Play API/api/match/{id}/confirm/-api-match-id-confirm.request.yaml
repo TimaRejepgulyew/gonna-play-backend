@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/match/:id/confirm
+url: "{{baseUrl}}/api/match/:id/confirm"
+method: POST
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-id-confirm.resources/examples
+order: 1000

@@ -1,0 +1,27 @@
+$kind: http-request
+name: Проверка продвижения очереди после выхода
+url: "{{baseUrl}}/api/match/:id/participants"
+method: GET
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test("Проверка продвижения очереди после выхода → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+
+      var d = pm.response.json();
+
+      pm.test("игрок 2 продвинут из очереди в состав (REGISTERED)", function ()
+      {
+        var p2 = d.find(function (x) { return String(x.playerId) === String(pm.collectionVariables.get("p2PlayerId")); }); pm.expect(p2, "участник p2 присутствует").to.exist; pm.expect(p2.status).to.equal("REGISTERED");
+      });
+    language: text/javascript
+order: 9000

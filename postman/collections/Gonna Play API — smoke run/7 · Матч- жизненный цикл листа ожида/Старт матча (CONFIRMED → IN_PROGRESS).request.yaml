@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/api/match/:id"
+method: PATCH
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "status": "IN_PROGRESS" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Старт матча (CONFIRMED → IN_PROGRESS) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.test("матч идёт (IN_PROGRESS)", function () {
+        pm.expect(d.status).to.equal("IN_PROGRESS");
+      });
+    language: text/javascript
+order: 12000

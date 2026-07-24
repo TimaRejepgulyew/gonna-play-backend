@@ -5,8 +5,7 @@ headers:
   Content-Type: application/json
 body:
   type: json
-  content: '{ "name": "Smoke Field", "locationId": {{locationId}}, "format":
-    "SEVEN_V_SEVEN" }'
+  content: '{ "name": "Smoke Field", "locationId": {{locationId}}, "format": "SEVEN" }'
 auth:
   type: bearer
   credentials:

@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/match/:id/cancel"
+method: POST
+pathVariables:
+  - key: id
+    value: "{{matchId2}}"
+    description: "(Required) "
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Отмена второго матча (→ CANCELLED) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.test("матч отменён (CANCELLED)", function () {
+        pm.expect(d.status).to.equal("CANCELLED");
+      });
+    language: text/javascript
+order: 3000

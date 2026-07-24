@@ -1,0 +1,32 @@
+$kind: http-request
+name: Игрок 2 записывается на заполненный матч — очередь (WAITLISTED)
+url: "{{baseUrl}}/api/match/:id/join"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "position": "GOALKEEPER" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{p2Token}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test("Игрок 2 записывается на заполненный матч — очередь (WAITLISTED) →
+      2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+
+      var d = pm.response.json();
+
+      pm.test("игрок 2 в очереди (WAITLISTED)", function () {
+        pm.expect(d.status).to.equal("WAITLISTED");
+      });
+    language: text/javascript
+order: 7000

@@ -1,0 +1,32 @@
+$kind: http-request
+name: Игрок 1 записывается — матч заполняется (REGISTERED, FULL)
+url: "{{baseUrl}}/api/match/:id/join"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "position": "FORWARD" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{p1Token}}"
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test("Игрок 1 записывается — матч заполняется (REGISTERED, FULL) →
+      2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+
+      var d = pm.response.json();
+
+      pm.test("игрок 1 в составе (REGISTERED)", function () {
+        pm.expect(d.status).to.equal("REGISTERED");
+      });
+    language: text/javascript
+order: 6000

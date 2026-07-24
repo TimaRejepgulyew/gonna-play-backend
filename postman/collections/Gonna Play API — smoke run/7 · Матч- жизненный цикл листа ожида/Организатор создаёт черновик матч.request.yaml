@@ -1,0 +1,36 @@
+$kind: http-request
+name: Организатор создаёт черновик матча (minPlayers=2, maxPlayers=2)
+url: "{{baseUrl}}/api/match/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "fieldId": {{fieldId}}, "title": "Smoke Match {{runId}}",
+    "startsAt": "{{futureDate}}", "format": "SEVEN", "minPlayers": 2,
+    "maxPlayers": 2, "price": 50, "durationMin": 90 }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set("futureDate", new Date(Date.now() + 7 *
+      864e5).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: >-
+      pm.test("Организатор создаёт черновик матча (minPlayers=2, maxPlayers=2) →
+      2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+
+      var d = pm.response.json();
+
+      pm.collectionVariables.set("matchId", d.id);
+
+      pm.test("создан в статусе DRAFT", function () {
+        pm.expect(d.status).to.equal("DRAFT");
+      });
+    language: text/javascript
+order: 1000

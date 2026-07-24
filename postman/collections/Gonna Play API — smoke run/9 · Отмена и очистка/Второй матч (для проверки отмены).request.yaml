@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/match/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "fieldId": {{fieldId}}, "title": "Smoke Match cancel {{runId}}",
+    "startsAt": "{{futureDate}}", "format": "SEVEN", "minPlayers": 2,
+    "maxPlayers": 4, "price": 0, "durationMin": 60 }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Второй матч (для проверки отмены) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("matchId2", d.id);
+    language: text/javascript
+order: 1000

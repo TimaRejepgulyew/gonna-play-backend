@@ -19,4 +19,4 @@ scripts:
       pm.collectionVariables.set("adminRefresh", d.refreshToken);
       pm.collectionVariables.set("adminUserId", d.user.id);
     language: text/javascript
-order: 2000
+order: 3000

@@ -12,8 +12,7 @@ body:
   type: json
   content: |-
     {
-      "position": "GOALKEEPER",
-      "team": "TEAM_A"
+      "position": "GOALKEEPER"
     }
 examples: ./.resources/-api-match-id-join.resources/examples
 order: 1000

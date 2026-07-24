@@ -1,7 +1,7 @@
 $kind: http-request
 name: /api/match/:id/leave
 url: "{{baseUrl}}/api/match/:id/leave"
-method: POST
+method: DELETE
 pathVariables:
   - key: id
     value: <string>

@@ -13,7 +13,7 @@ body:
   content: |-
     {
       "name": "<string>",
-      "format": "FIVE_V_FIVE",
+      "format": "FIVE",
       "surface": "NATURAL_GRASS",
       "width": "<number>",
       "length": "<number>",

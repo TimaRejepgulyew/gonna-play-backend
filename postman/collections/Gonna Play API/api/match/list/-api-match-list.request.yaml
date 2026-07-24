@@ -1,8 +1,8 @@
 $kind: http-request
 name: /api/match/list
 url: "{{baseUrl}}/api/match/list?page=1&limit=20&sort=<string>&order=asc&city=<\
-  string>&dateFrom=<dateTime>&dateTo=<dateTime>&format=FIVE_V_FIVE&level=JUNIOR\
-  &status=OPEN&fieldId=<integer>&organizerId=<integer>"
+  string>&dateFrom=<dateTime>&dateTo=<dateTime>&format=FIVE&level=JUNIOR&status\
+  =DRAFT&fieldId=<integer>&organizerId=<integer>"
 method: GET
 queryParams:
   - key: page
@@ -21,14 +21,14 @@ queryParams:
   - key: dateTo
     value: <dateTime>
   - key: format
-    value: FIVE_V_FIVE
-    description: " (This can only be one of FIVE_V_FIVE)"
+    value: FIVE
+    description: " (This can only be one of FIVE)"
   - key: level
     value: JUNIOR
     description: " (This can only be one of JUNIOR)"
   - key: status
-    value: OPEN
-    description: " (This can only be one of OPEN)"
+    value: DRAFT
+    description: " (This can only be one of DRAFT)"
   - key: fieldId
     value: <integer>
   - key: organizerId

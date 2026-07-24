@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/role/:id"
+method: DELETE
+pathVariables:
+  - key: id
+    value: "{{roleId}}"
+    description: "(Required) "
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Удаление роли → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+    language: text/javascript
+order: 10000

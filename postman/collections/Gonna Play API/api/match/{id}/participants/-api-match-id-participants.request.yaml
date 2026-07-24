@@ -1,11 +1,11 @@
 $kind: http-request
 name: /api/match/:id/participants
-url: "{{baseUrl}}/api/match/:id/participants?status=INVITED"
+url: "{{baseUrl}}/api/match/:id/participants?status=REGISTERED"
 method: GET
 queryParams:
   - key: status
-    value: INVITED
-    description: " (This can only be one of INVITED)"
+    value: REGISTERED
+    description: " (This can only be one of REGISTERED)"
 pathVariables:
   - key: id
     value: <string>

@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/match/:id/publish
+url: "{{baseUrl}}/api/match/:id/publish"
+method: POST
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-id-publish.resources/examples
+order: 1000

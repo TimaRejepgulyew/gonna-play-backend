@@ -7,7 +7,7 @@ headers:
 body:
   type: json
   content: '{ "name": "Smoke Field tmp", "locationId": {{locationId2}}, "format":
-    "FIVE_V_FIVE" }'
+    "FIVE" }'
 auth:
   type: bearer
   credentials:

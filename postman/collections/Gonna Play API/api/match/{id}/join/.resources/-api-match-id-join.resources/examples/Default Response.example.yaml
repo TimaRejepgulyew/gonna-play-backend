@@ -12,8 +12,7 @@ request:
     type: json
     content: |-
       {
-        "position": "GOALKEEPER",
-        "team": "TEAM_A"
+        "position": "GOALKEEPER"
       }
 response:
   statusCode: 200

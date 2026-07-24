@@ -3,7 +3,7 @@ url: "{{baseUrl}}/api/rating/player/:playerId"
 method: GET
 pathVariables:
   - key: playerId
-    value: "{{p1PlayerId}}"
+    value: "{{p2PlayerId}}"
     description: "(Required) "
 auth:
   type: noauth

@@ -2,9 +2,31 @@ $kind: http-example
 request:
   url: "{{baseUrl}}/api/player/"
   method: POST
+  headers:
+    Content-Type: application/json
   body:
-    type: text
-    content: ""
+    type: json
+    content: |-
+      {
+        "name": "<string>",
+        "level": "JUNIOR",
+        "position": "GOALKEEPER",
+        "userId": "<number>",
+        "user": {
+          "birthDate": "<string>",
+          "email": "<string>",
+          "password": "<string>",
+          "phone": "<string>",
+          "avatar": "<string>",
+          "city": "<string>",
+          "country": "<string>",
+          "firstName": "<string>",
+          "gender": "<string>",
+          "lastName": "<string>",
+          "telegramId": "<string>",
+          "telegramUsername": "<string>"
+        }
+      }
 response:
   statusCode: 200
   statusText: OK

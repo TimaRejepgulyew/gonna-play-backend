@@ -12,7 +12,7 @@ request:
     type: json
     content: |-
       {
-        "avatar": "<number>",
+        "avatar": "<string>",
         "birthDate": "<string>",
         "city": "<string>",
         "country": "<string>",

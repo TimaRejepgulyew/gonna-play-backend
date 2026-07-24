@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/match/:id/check-in
+url: "{{baseUrl}}/api/match/:id/check-in"
+method: POST
+pathVariables:
+  - key: id
+    value: <string>
+    description: "(Required) "
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-match-id-check-in.resources/examples
+order: 1000

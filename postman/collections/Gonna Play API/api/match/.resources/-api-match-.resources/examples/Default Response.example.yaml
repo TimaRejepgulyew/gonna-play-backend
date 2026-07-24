@@ -9,12 +9,18 @@ request:
     content: |-
       {
         "fieldId": "<integer>",
-        "startTime": "<dateTime>",
-        "format": "FIVE_V_FIVE",
+        "title": "<string>",
+        "startsAt": "<dateTime>",
+        "format": "FIVE",
+        "minPlayers": "<integer>",
         "maxPlayers": "<integer>",
-        "durationMinutes": 60,
-        "requiredLevel": "JUNIOR",
-        "price": "<number>"
+        "durationMin": 60,
+        "price": "<number>",
+        "currency": "<string>",
+        "visibility": "PUBLIC",
+        "skillMin": "JUNIOR",
+        "skillMax": "JUNIOR",
+        "description": "<string>"
       }
 response:
   statusCode: 200

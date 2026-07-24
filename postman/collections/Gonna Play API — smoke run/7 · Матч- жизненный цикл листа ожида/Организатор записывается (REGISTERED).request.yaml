@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/api/match/:id/join"
+method: POST
+headers:
+  Content-Type: application/json
+pathVariables:
+  - key: id
+    value: "{{matchId}}"
+    description: "(Required) "
+body:
+  type: json
+  content: '{ "position": "MIDFIELDER" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Организатор записывается (REGISTERED) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.test("организатор в составе (REGISTERED)", function () {
+        pm.expect(d.status).to.equal("REGISTERED");
+      });
+    language: text/javascript
+order: 5000

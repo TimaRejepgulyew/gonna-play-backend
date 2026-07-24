@@ -1,7 +1,7 @@
 $kind: http-example
 request:
   url: "{{baseUrl}}/api/match/:id"
-  method: PUT
+  method: PATCH
   headers:
     Content-Type: application/json
   pathVariables:
@@ -12,12 +12,18 @@ request:
     type: json
     content: |-
       {
-        "startTime": "<dateTime>",
-        "durationMinutes": 60,
-        "requiredLevel": "JUNIOR",
-        "price": "<number>",
+        "title": "<string>",
+        "startsAt": "<dateTime>",
+        "durationMin": 60,
+        "minPlayers": "<integer>",
         "maxPlayers": "<integer>",
-        "status": "OPEN"
+        "price": "<number>",
+        "currency": "<string>",
+        "visibility": "PUBLIC",
+        "skillMin": "JUNIOR",
+        "skillMax": "JUNIOR",
+        "description": "<string>",
+        "status": "DRAFT"
       }
 response:
   statusCode: 200

@@ -2,8 +2,30 @@ $kind: http-request
 name: /api/player/
 url: "{{baseUrl}}/api/player/"
 method: POST
+headers:
+  Content-Type: application/json
 body:
-  type: text
-  content: ""
+  type: json
+  content: |-
+    {
+      "name": "<string>",
+      "level": "JUNIOR",
+      "position": "GOALKEEPER",
+      "userId": "<number>",
+      "user": {
+        "birthDate": "<string>",
+        "email": "<string>",
+        "password": "<string>",
+        "phone": "<string>",
+        "avatar": "<string>",
+        "city": "<string>",
+        "country": "<string>",
+        "firstName": "<string>",
+        "gender": "<string>",
+        "lastName": "<string>",
+        "telegramId": "<string>",
+        "telegramUsername": "<string>"
+      }
+    }
 examples: ./.resources/-api-player-.resources/examples
 order: 3000

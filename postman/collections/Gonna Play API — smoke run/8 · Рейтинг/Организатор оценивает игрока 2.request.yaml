@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rating/"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{ "matchId": {{matchId}}, "ratedId": {{p2PlayerId}}, "score": 5,
+    "comment": "Отличная игра" }'
+auth:
+  type: bearer
+  credentials:
+    token: "{{orgToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Организатор оценивает игрока 2 → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("ratingId", d.id);
+    language: text/javascript
+order: 1000

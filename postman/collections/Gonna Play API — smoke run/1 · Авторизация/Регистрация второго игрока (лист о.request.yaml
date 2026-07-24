@@ -1,0 +1,32 @@
+$kind: http-request
+name: Регистрация второго игрока (лист ожидания)
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "smoke-p2+{{runId}}@gonnaplay.com",
+      "password": "Smoke123!",
+      "name": "Smoke Player Two",
+      "birthDate": "1996-06-06",
+      "createPlayer": true,
+      "level": "MIDDLE",
+      "position": "FORWARD"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Регистрация второго игрока (лист ожидания) → 2xx", function () {
+        pm.expect(pm.response.code).to.be.within(200, 299);
+      });
+      var d = pm.response.json();
+      pm.collectionVariables.set("p2Token", d.accessToken);
+      pm.collectionVariables.set("p2UserId", d.user.id);
+      pm.collectionVariables.set("p2PlayerId", d.user.playerId);
+    language: text/javascript
+order: 2000

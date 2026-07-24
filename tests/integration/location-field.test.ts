@@ -5,12 +5,10 @@
 // поэтому центральный сценарий — локация, затем поле внутри неё: порядок построения
 // графа жёсткий (§9.10), обе операции требуют админского токена.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import { createTestApp, destroyTestApp } from "../helpers/app.js";
-import { createActor } from "../helpers/actors.js";
-
 import type { AppInstance } from "@/app.js";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import { createActor } from "../helpers/actors.js";
+import { createTestApp, destroyTestApp } from "../helpers/app.js";
 
 let app: AppInstance;
 
@@ -66,7 +64,7 @@ function postField(token: string, payload: Record<string, unknown>) {
 /** Создаёт локацию админским токеном и возвращает её id. Падает, если создание не прошло. */
 async function createLocationOrThrow(
   token: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<number> {
   const res = await postLocation(token, payload);
   if (![200, 201].includes(res.statusCode)) {

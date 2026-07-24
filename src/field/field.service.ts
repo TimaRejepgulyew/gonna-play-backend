@@ -1,23 +1,18 @@
 import { Prisma } from "@prisma/client";
-
+import type { FastifyBaseLogger } from "fastify";
+import type { MATCH_FORMAT, SURFACE_TYPE } from "@/constants/enums.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
+import type { ErrorResponse } from "@/types/prisma.js";
 import {
-  CACHE_TTL,
-  cacheKeys,
-  cacheDel,
   bumpVersion,
+  CACHE_TTL,
+  cacheDel,
+  cacheKeys,
   getOrSet,
   getOrSetList,
 } from "@/utils/cache.js";
-import Field from "./field.model.js";
-
-import type { FastifyBaseLogger } from "fastify";
-import type { ErrorResponse } from "@/types/prisma.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
-import type { MATCH_FORMAT, SURFACE_TYPE } from "@/constants/enums.js";
+import type Field from "./field.model.js";
 
 export interface CreateField {
   locationId: number;
@@ -41,7 +36,7 @@ export interface FieldListFilters {
 export interface IFieldRepository {
   getFieldList(
     pagination?: PaginationQuery,
-    filters?: FieldListFilters
+    filters?: FieldListFilters,
   ): Promise<PaginatedResult<Field>>;
   getField(id: number): Promise<Field | null>;
   createField(data: CreateField): Promise<Field>;
@@ -53,28 +48,23 @@ export interface IFieldRepository {
 export class FieldService {
   constructor(
     private fieldRepository: IFieldRepository,
-    private logger: FastifyBaseLogger
+    private logger: FastifyBaseLogger,
   ) {}
 
   getFieldList(
     pagination?: PaginationQuery,
-    filters?: FieldListFilters
+    filters?: FieldListFilters,
   ): Promise<PaginatedResult<Field>> {
     // Cache class `field:list` (versioned).
-    return getOrSetList(
-      "field:list",
-      { ...pagination, ...filters },
-      CACHE_TTL.FIELD_LIST,
-      () => this.fieldRepository.getFieldList(pagination, filters)
+    return getOrSetList("field:list", { ...pagination, ...filters }, CACHE_TTL.FIELD_LIST, () =>
+      this.fieldRepository.getFieldList(pagination, filters),
     );
   }
 
   async getField(id: number): Promise<Field | ErrorResponse> {
     // Cache class `field:detail` (single key).
-    const field = await getOrSet(
-      cacheKeys.fieldDetail(id),
-      CACHE_TTL.FIELD_DETAIL,
-      () => this.fieldRepository.getField(id)
+    const field = await getOrSet(cacheKeys.fieldDetail(id), CACHE_TTL.FIELD_DETAIL, () =>
+      this.fieldRepository.getField(id),
     );
     if (!field) {
       return appErrorCodes.FIELD_NOT_FOUND;
@@ -96,10 +86,7 @@ export class FieldService {
     return created;
   }
 
-  async updateField(
-    id: number,
-    data: UpdateField
-  ): Promise<Field | ErrorResponse> {
+  async updateField(id: number, data: UpdateField): Promise<Field | ErrorResponse> {
     const existing = await this.fieldRepository.getField(id);
     if (!existing) {
       return appErrorCodes.FIELD_NOT_FOUND;

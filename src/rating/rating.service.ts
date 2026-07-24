@@ -1,19 +1,12 @@
 import { Prisma } from "@prisma/client";
-
-import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import { MATCH_STATUS } from "@/constants/enums.js";
-import {
-  CACHE_TTL,
-  cacheKeys,
-  cacheDel,
-  bumpVersion,
-  getOrSet,
-} from "@/utils/cache.js";
-import PlayerRating, { RatingAggregate } from "./rating.model.js";
-
 import type { FastifyBaseLogger } from "fastify";
-import type { ErrorResponse } from "@/types/prisma.js";
+import { MATCH_STATUS } from "@/constants/enums.js";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { JwtPayload } from "@/plugins/auth.js";
+import type { ErrorResponse } from "@/types/prisma.js";
+import { bumpVersion, CACHE_TTL, cacheDel, cacheKeys, getOrSet } from "@/utils/cache.js";
+import type PlayerRating from "./rating.model.js";
+import type { RatingAggregate } from "./rating.model.js";
 
 export interface CreateRatingInput {
   matchId: number;
@@ -45,12 +38,12 @@ export interface IRatingRepository {
 export class RatingService {
   constructor(
     private ratingRepository: IRatingRepository,
-    private logger: FastifyBaseLogger
+    private logger: FastifyBaseLogger,
   ) {}
 
   async createRating(
     payload: JwtPayload,
-    input: CreateRatingInput
+    input: CreateRatingInput,
   ): Promise<PlayerRating | ErrorResponse> {
     if (!payload.playerId) {
       return appErrorCodes.PLAYER_PROFILE_REQUIRED;
@@ -81,10 +74,7 @@ export class RatingService {
     try {
       created = await this.ratingRepository.createRating({ ...input, raterId });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         return appErrorCodes.RATING_ALREADY_EXISTS;
       }
       this.logger.error(error);
@@ -107,20 +97,17 @@ export class RatingService {
   getPlayerRatings(playerId: number): Promise<PlayerRatingsResult> {
     // Cache class `player:rating` (aggregate + rating list for the player).
     return getOrSet(cacheKeys.playerRating(playerId), CACHE_TTL.PLAYER_RATING, () =>
-      this.ratingRepository.getByPlayer(playerId)
+      this.ratingRepository.getByPlayer(playerId),
     );
   }
 
   async getMatchRatings(
     matchId: number,
-    payload: JwtPayload
+    payload: JwtPayload,
   ): Promise<PlayerRating[] | ErrorResponse> {
     const allowed =
       (payload.playerId !== undefined &&
-        (await this.ratingRepository.isMatchParticipant(
-          matchId,
-          payload.playerId
-        ))) ||
+        (await this.ratingRepository.isMatchParticipant(matchId, payload.playerId))) ||
       !!payload.roles?.includes("admin");
 
     if (!allowed) {
@@ -129,18 +116,12 @@ export class RatingService {
     return this.ratingRepository.getByMatch(matchId);
   }
 
-  async deleteRating(
-    id: number,
-    payload: JwtPayload
-  ): Promise<{ status: string } | ErrorResponse> {
+  async deleteRating(id: number, payload: JwtPayload): Promise<{ status: string } | ErrorResponse> {
     const rating = await this.ratingRepository.findById(id);
     if (!rating) {
       return appErrorCodes.RATING_NOT_FOUND;
     }
-    if (
-      rating.raterId !== payload.playerId &&
-      !payload.roles?.includes("admin")
-    ) {
+    if (rating.raterId !== payload.playerId && !payload.roles?.includes("admin")) {
       return appErrorCodes.AUTH_FORBIDDEN;
     }
     await this.ratingRepository.deleteRating(id);

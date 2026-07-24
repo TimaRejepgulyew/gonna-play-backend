@@ -12,11 +12,10 @@
 // silent (the hazard) and that missingMethods records the miss (the guard), then
 // asserts that the very assertion afterEach performs fails on that list.
 
-import { afterEach, describe, expect, it } from "vitest";
 import type { Redis } from "ioredis";
-
-import { getOrSet } from "@/utils/cache.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { setRedis } from "@/config/redis.js";
+import { getOrSet } from "@/utils/cache.js";
 
 import stub, { missingMethods } from "./doubles/redis.stub.js";
 
@@ -52,8 +51,7 @@ afterEach(() => {
 
 describe("redis stub contract", () => {
   it("records an unaccounted-for method instead of throwing", async () => {
-    const unaccounted = (stub as unknown as Record<string, () => Promise<unknown>>)
-      .hgetall;
+    const unaccounted = (stub as unknown as Record<string, () => Promise<unknown>>).hgetall;
 
     await expect(unaccounted()).resolves.toBeUndefined();
     expect(missingMethods).toEqual(["hgetall"]);

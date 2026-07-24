@@ -1,5 +1,5 @@
-import fp from "fastify-plugin";
 import swagger from "@fastify/swagger";
+import fp from "fastify-plugin";
 
 // OpenAPI generation (решение Р6): the spec is produced from the live route
 // schemas by @fastify/swagger and served at /docs/json; the Postman collection
@@ -26,9 +26,7 @@ const swaggerPlugin = fp(async (fastify) => {
     },
   });
 
-  fastify.get("/docs/json", { schema: { hide: true } }, async () =>
-    fastify.swagger()
-  );
+  fastify.get("/docs/json", { schema: { hide: true } }, async () => fastify.swagger());
 });
 
 export default swaggerPlugin;

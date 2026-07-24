@@ -1,10 +1,9 @@
-import { rateLimit } from "@/utils/rateLimit.js";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import type { FastifyInstance } from "fastify";
 import { isErrorShape } from "@/utils/cache.js";
+import { rateLimit } from "@/utils/rateLimit.js";
 import { AuthController } from "./auth.controller.js";
 import { loginSchema, refreshSchema, registerSchema } from "./auth.model.js";
-
-import type { FastifyInstance } from "fastify";
-import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
 // Best-effort extraction of the login email for a per-account brute-force
 // counter (cache-design.md §6). Undefined -> that counter is skipped.
@@ -13,18 +12,14 @@ const loginEmail = (req: { body?: unknown }): string | undefined => {
   return body?.email ? `email:${body.email.toLowerCase()}` : undefined;
 };
 
-export default async function authRoutes(
-  fastifyInstance: FastifyInstance
-) {
+export default async function authRoutes(fastifyInstance: FastifyInstance) {
   const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
   const authController = new AuthController(fastifyInstance);
 
   server.post(
     "/register",
     {
-      preHandler: [
-        rateLimit({ action: "register", windowSeconds: 3600, max: 5 }),
-      ],
+      preHandler: [rateLimit({ action: "register", windowSeconds: 3600, max: 5 })],
       schema: registerSchema,
     },
     async (req, reply) => {
@@ -35,7 +30,7 @@ export default async function authRoutes(
         reply.code(201);
       }
       return result;
-    }
+    },
   );
 
   server.post(
@@ -53,29 +48,23 @@ export default async function authRoutes(
       ],
       schema: loginSchema,
     },
-    authController.login.bind(authController)
+    authController.login.bind(authController),
   );
 
   server.post(
     "/refresh",
     {
-      preHandler: [
-        rateLimit({ action: "refresh", windowSeconds: 900, max: 30 }),
-      ],
+      preHandler: [rateLimit({ action: "refresh", windowSeconds: 900, max: 30 })],
       schema: refreshSchema,
     },
-    authController.refresh.bind(authController)
+    authController.refresh.bind(authController),
   );
 
-  server.get(
-    "/me",
-    { preHandler: [server.authenticate] },
-    authController.me.bind(authController)
-  );
+  server.get("/me", { preHandler: [server.authenticate] }, authController.me.bind(authController));
 
   server.post(
     "/logout",
     { preHandler: [server.authenticate] },
-    authController.logout.bind(authController)
+    authController.logout.bind(authController),
   );
 }

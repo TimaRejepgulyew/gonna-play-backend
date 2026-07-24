@@ -1,11 +1,11 @@
-import { Type, type TSchema } from "@sinclair/typebox";
+import { type TSchema, Type } from "@sinclair/typebox";
 
 export const paginationQuerySchema = Type.Object({
   page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 20 })),
   sort: Type.Optional(Type.String()),
   order: Type.Optional(
-    Type.Union([Type.Literal("asc"), Type.Literal("desc")], { default: "desc" })
+    Type.Union([Type.Literal("asc"), Type.Literal("desc")], { default: "desc" }),
   ),
 });
 
@@ -54,13 +54,11 @@ export function resolvePagination(
   query: PaginationQuery,
   allowedSort: string[],
   defaultSort: string,
-  defaultOrder: "asc" | "desc" = "desc"
+  defaultOrder: "asc" | "desc" = "desc",
 ): ResolvedPagination {
   const page = query.page && query.page > 0 ? query.page : 1;
-  const limit =
-    query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 20;
-  const sortField =
-    query.sort && allowedSort.includes(query.sort) ? query.sort : defaultSort;
+  const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 20;
+  const sortField = query.sort && allowedSort.includes(query.sort) ? query.sort : defaultSort;
   const order = query.order === "asc" ? "asc" : query.order === "desc" ? "desc" : defaultOrder;
 
   return {
@@ -72,11 +70,7 @@ export function resolvePagination(
   };
 }
 
-export function buildMeta(
-  page: number,
-  limit: number,
-  total: number
-): PaginationMeta {
+export function buildMeta(page: number, limit: number, total: number): PaginationMeta {
   return {
     page,
     limit,

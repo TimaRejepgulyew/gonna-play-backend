@@ -1,13 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
-import { MATCH_STATUS, PARTICIPANT_STATUS } from "@/constants/enums.js";
-import PlayerRating from "./rating.model.js";
+import { type MATCH_STATUS, PARTICIPANT_STATUS } from "@/constants/enums.js";
+import type PlayerRating from "./rating.model.js";
 
-import type {
-  CreateRatingData,
-  IRatingRepository,
-  PlayerRatingsResult,
-} from "./rating.service.js";
+import type { CreateRatingData, IRatingRepository, PlayerRatingsResult } from "./rating.service.js";
 
 export default class RatingRepository implements IRatingRepository {
   constructor(private prisma: PrismaClient) {}
@@ -75,10 +71,7 @@ export default class RatingRepository implements IRatingRepository {
     return (match?.status as MATCH_STATUS) ?? null;
   }
 
-  async isConfirmedParticipant(
-    matchId: number,
-    playerId: number
-  ): Promise<boolean> {
+  async isConfirmedParticipant(matchId: number, playerId: number): Promise<boolean> {
     const participant = await this.prisma.matchParticipant.findUnique({
       where: { matchId_playerId: { matchId, playerId } },
       select: { status: true },
@@ -89,10 +82,7 @@ export default class RatingRepository implements IRatingRepository {
     );
   }
 
-  async isMatchParticipant(
-    matchId: number,
-    playerId: number
-  ): Promise<boolean> {
+  async isMatchParticipant(matchId: number, playerId: number): Promise<boolean> {
     const participant = await this.prisma.matchParticipant.findUnique({
       where: { matchId_playerId: { matchId, playerId } },
       select: { id: true },

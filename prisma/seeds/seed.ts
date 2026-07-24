@@ -1,74 +1,74 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client";
 
-import { hashToStorage } from '../../src/auth/password.js'
+import { hashToStorage } from "../../src/auth/password.js";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 // Seeded credentials (plaintext for local use). Stored as `salt:hash` via the
 // same helper the auth flow uses, so the seeded admin can actually log in.
-const ADMIN_PASSWORD = hashToStorage('Admin123!')
-const PLAYER_PASSWORD = hashToStorage('Player123!')
+const ADMIN_PASSWORD = hashToStorage("Admin123!");
+const PLAYER_PASSWORD = hashToStorage("Player123!");
 
 async function main() {
-  console.log('🌱 Starting seed...')
+  console.log("🌱 Starting seed...");
 
   // Create default roles
   const adminRole = await prisma.role.upsert({
-    where: { name: 'admin' },
+    where: { name: "admin" },
     update: {},
     create: {
-      name: 'admin',
+      name: "admin",
     },
-  })
+  });
 
   const userRole = await prisma.role.upsert({
-    where: { name: 'user' },
+    where: { name: "user" },
     update: {},
     create: {
-      name: 'user',
+      name: "user",
     },
-  })
+  });
 
   const playerRole = await prisma.role.upsert({
-    where: { name: 'player' },
+    where: { name: "player" },
     update: {},
     create: {
-      name: 'player',
+      name: "player",
     },
-  })
+  });
 
-  console.log('✅ Roles created:', { adminRole, userRole, playerRole })
+  console.log("✅ Roles created:", { adminRole, userRole, playerRole });
 
   // Create admin user
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@gonnaplay.com' },
+    where: { email: "admin@gonnaplay.com" },
     update: { password: ADMIN_PASSWORD },
     create: {
-      email: 'admin@gonnaplay.com',
+      email: "admin@gonnaplay.com",
       password: ADMIN_PASSWORD,
-      name: 'Admin User',
-      birthDate: '1990-01-01',
+      name: "Admin User",
+      birthDate: "1990-01-01",
       isActive: true,
       isEmailVerified: true,
     },
-  })
+  });
 
   // Create player user
   const playerUser = await prisma.user.upsert({
-    where: { email: 'player1@gonnaplay.com' },
+    where: { email: "player1@gonnaplay.com" },
     update: { password: PLAYER_PASSWORD },
     create: {
-      email: 'player1@gonnaplay.com',
+      email: "player1@gonnaplay.com",
       password: PLAYER_PASSWORD,
-      name: 'John Striker',
-      birthDate: '1995-05-15',
-      city: 'New York',
-      country: 'USA',
-      gender: 'male',
+      name: "John Striker",
+      birthDate: "1995-05-15",
+      city: "New York",
+      country: "USA",
+      gender: "male",
       isActive: true,
       isEmailVerified: true,
     },
-  })
+  });
 
   // Create user roles
   const existingAdminRole = await prisma.userRole.findFirst({
@@ -76,7 +76,7 @@ async function main() {
       userId: adminUser.id,
       roleId: adminRole.id,
     },
-  })
+  });
 
   if (!existingAdminRole) {
     await prisma.userRole.create({
@@ -84,7 +84,7 @@ async function main() {
         userId: adminUser.id,
         roleId: adminRole.id,
       },
-    })
+    });
   }
 
   const existingPlayerUserRole = await prisma.userRole.findFirst({
@@ -92,7 +92,7 @@ async function main() {
       userId: playerUser.id,
       roleId: userRole.id,
     },
-  })
+  });
 
   if (!existingPlayerUserRole) {
     await prisma.userRole.create({
@@ -100,7 +100,7 @@ async function main() {
         userId: playerUser.id,
         roleId: userRole.id,
       },
-    })
+    });
   }
 
   // Create player profile
@@ -108,25 +108,25 @@ async function main() {
     where: { userId: playerUser.id },
     update: {},
     create: {
-      name: playerUser.name || 'Unknown Player',
-      level: 'MIDDLE',
-      position: 'FORWARD',
-      status: 'ACTIVE',
+      name: playerUser.name || "Unknown Player",
+      level: "MIDDLE",
+      position: "FORWARD",
+      status: "ACTIVE",
       userId: playerUser.id,
     },
-  })
+  });
 
-  console.log(`✅ Admin user created: ${adminUser.email}`)
-  console.log(`✅ Player user created: ${playerUser.email}`)
-  console.log(`✅ Player profile created: ${player.name}`)
-  console.log('🎉 Seed completed successfully!')
+  console.log(`✅ Admin user created: ${adminUser.email}`);
+  console.log(`✅ Player user created: ${playerUser.email}`);
+  console.log(`✅ Player profile created: ${player.name}`);
+  console.log("🎉 Seed completed successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e)
-    process.exit(1)
+    console.error("❌ Seed failed:", e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  }) 
+    await prisma.$disconnect();
+  });

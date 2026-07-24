@@ -1,18 +1,13 @@
-import { PrismaClient } from "@prisma/client";
-
+import type { PrismaClient } from "@prisma/client";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
-import Field from "./field.model.js";
-
+import type Field from "./field.model.js";
 import type {
   CreateField,
   FieldListFilters,
   IFieldRepository,
   UpdateField,
 } from "./field.service.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
 
 const FIELD_SORT_FIELDS = ["createdAt", "updatedAt", "name", "format"];
 
@@ -21,12 +16,12 @@ export default class FieldRepository implements IFieldRepository {
 
   async getFieldList(
     pagination: PaginationQuery = {},
-    filters: FieldListFilters = {}
+    filters: FieldListFilters = {},
   ): Promise<PaginatedResult<Field>> {
     const { skip, take, page, limit, orderBy } = resolvePagination(
       pagination,
       FIELD_SORT_FIELDS,
-      "createdAt"
+      "createdAt",
     );
 
     const where = {

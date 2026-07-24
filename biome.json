@@ -1,0 +1,125 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**",
+      "!dist",
+      "!coverage",
+      "!node_modules",
+      "!postman/collections",
+      "!postman/specs",
+      "!prisma/migrations",
+      "!docs",
+      "!.claude"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": { "maxAllowedComplexity": 15 }
+        },
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": { "maxLines": 80, "skipBlankLines": true }
+        }
+      },
+      "style": {
+        "noMagicNumbers": "error",
+        "noParameterAssign": "error",
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false,
+            "conventions": [
+              { "selector": { "kind": "enum" }, "formats": ["PascalCase", "CONSTANT_CASE"] },
+              { "selector": { "kind": "enumMember" }, "formats": ["PascalCase", "CONSTANT_CASE"] },
+              { "selector": { "kind": "objectLiteralProperty" }, "match": ".*" },
+              { "selector": { "kind": "typeProperty" }, "match": ".*" }
+            ]
+          }
+        }
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["tests/**"],
+      "linter": {
+        "rules": {
+          "style": { "noMagicNumbers": "off" },
+          "complexity": { "noExcessiveLinesPerFunction": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["scripts/**", "prisma/seeds/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noConsole": "off" }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/config/env.ts",
+        "src/config/redis.ts",
+        "src/utils/rateLimit.ts",
+        "src/utils/cache.ts",
+        "src/types/pagination.ts",
+        "src/auth/auth.service.ts",
+        "src/auth/auth.routes.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": { "noMagicNumbers": "warn" }
+        }
+      }
+    },
+    {
+      "includes": ["src/match/match.service.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "warn",
+            "noExcessiveLinesPerFunction": "warn"
+          },
+          "style": { "noNonNullAssertion": "warn" }
+        }
+      }
+    },
+    {
+      "includes": ["src/index.ts", "src/user/user.repository.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noConsole": "warn" }
+        }
+      }
+    }
+  ]
+}

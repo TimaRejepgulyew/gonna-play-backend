@@ -2,13 +2,11 @@
 // приватного роута без токена. Одно приложение на файл (§9.7, §12): beforeAll
 // строит его один раз, beforeEach из integration-setup чистит базу перед каждым тестом.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import { createTestApp, destroyTestApp } from "../helpers/app.js";
-import { createActor } from "../helpers/actors.js";
-
 import type { AppInstance } from "@/app.js";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { JwtPayload } from "@/plugins/auth.js";
+import { createActor } from "../helpers/actors.js";
+import { createTestApp, destroyTestApp } from "../helpers/app.js";
 
 let app: AppInstance;
 
@@ -16,9 +14,7 @@ let app: AppInstance;
 function decodeJwtPayload(token: string): JwtPayload {
   const segment = token.split(".")[1];
   if (!segment) throw new Error(`Not a JWT: ${token}`);
-  return JSON.parse(
-    Buffer.from(segment, "base64url").toString("utf8")
-  ) as JwtPayload;
+  return JSON.parse(Buffer.from(segment, "base64url").toString("utf8")) as JwtPayload;
 }
 
 beforeAll(async () => {

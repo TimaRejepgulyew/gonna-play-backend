@@ -1,4 +1,4 @@
-import { buildApp, type AppInstance } from "@/app.js";
+import { type AppInstance, buildApp } from "@/app.js";
 
 /**
  * Логгер передаётся как { level: "silent" }, а не logger: false: транспорт

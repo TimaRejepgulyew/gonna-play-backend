@@ -1,14 +1,11 @@
 import { errorCodes } from "fastify";
 
 import { errorCodes as userErrorCodes } from "@/constants/index.js";
-import { User } from "./user.model.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 
 import type { ErrorResponse } from "@/types/prisma.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
 import type { CreateUser, UpdateUser } from "./types.js";
+import { User } from "./user.model.js";
 
 export interface UserListFilters {
   city?: string;
@@ -18,7 +15,7 @@ export interface UserListFilters {
 export interface IUserRepository {
   getUserList(
     pagination?: PaginationQuery,
-    filters?: UserListFilters
+    filters?: UserListFilters,
   ): Promise<PaginatedResult<User>>;
   createUser(user: CreateUser): Promise<User | null>;
   deleteUser(id: number): Promise<number | null>;
@@ -32,16 +29,14 @@ export default class UserService {
 
   getUserList(
     pagination?: PaginationQuery,
-    filters?: UserListFilters
+    filters?: UserListFilters,
   ): Promise<PaginatedResult<User>> {
     return this.userRepository.getUserList(pagination, filters);
   }
 
   async createUser(user: CreateUser): Promise<User | ErrorResponse> {
     try {
-      const existingUser = await this.userRepository.getUserByEmail?.(
-        user.email
-      );
+      const existingUser = await this.userRepository.getUserByEmail?.(user.email);
       if (existingUser) {
         return userErrorCodes.USER_EMAIL_DUPLICATED;
       }
@@ -51,7 +46,7 @@ export default class UserService {
         return userErrorCodes.USER_NOT_CREATED;
       }
       return new User(createdUser);
-    } catch (error) {
+    } catch {
       throw errorCodes.FST_ERR_CTP_INVALID_HANDLER();
     }
   }

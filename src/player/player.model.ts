@@ -1,8 +1,7 @@
 import { Type } from "@sinclair/typebox";
-
-import { createUserSchema, updateUserSchema, User } from "@/user/user.model.js";
 import { PLAYER_STATUS } from "@/constants/enums.js";
 import { paginationQuerySchema } from "@/types/pagination.js";
+import { createUserSchema, type User, updateUserSchema } from "@/user/user.model.js";
 import { PLAYER_LEVEL, PLAYER_POSITION } from "./constant.js";
 
 export interface PlayerRatingAggregate {

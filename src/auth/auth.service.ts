@@ -1,27 +1,24 @@
 import { randomUUID } from "node:crypto";
-
+import type { FastifyBaseLogger } from "fastify";
 import { errorCodes } from "fastify";
-
 import env from "@/config/env.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import UserRepository from "@/user/user.repository.js";
-import PlayerRepository from "@/player/player.repository.js";
-import { PLAYER_LEVEL, PLAYER_POSITION } from "@/player/constant.js";
-import { verifyPassword } from "./password.js";
-import AuthRepository from "./auth.repository.js";
-import {
-  storeRefresh,
-  checkRefresh,
-  revokeRefresh,
-  revokeAllRefresh,
-  blacklistAccess,
-} from "./refreshStore.js";
-
-import type { FastifyBaseLogger } from "fastify";
-import type { ErrorResponse } from "@/types/prisma.js";
-import type { CreateUser, UpdateUser } from "@/user/types.js";
+import type { PLAYER_LEVEL, PLAYER_POSITION } from "@/player/constant.js";
+import type PlayerRepository from "@/player/player.repository.js";
 import type { CreatePlayer } from "@/player/player.service.js";
 import type { JwtPayload } from "@/plugins/auth.js";
+import type { ErrorResponse } from "@/types/prisma.js";
+import type { CreateUser, UpdateUser } from "@/user/types.js";
+import type UserRepository from "@/user/user.repository.js";
+import type AuthRepository from "./auth.repository.js";
+import { verifyPassword } from "./password.js";
+import {
+  blacklistAccess,
+  checkRefresh,
+  revokeAllRefresh,
+  revokeRefresh,
+  storeRefresh,
+} from "./refreshStore.js";
 
 // Minimal contract over @fastify/jwt's signer, decoupled from the ambient
 // jwt typing so the service stays independent of Fastify's decorator surface.
@@ -68,7 +65,7 @@ export class AuthService {
     private userRepository: UserRepository,
     private playerRepository: PlayerRepository,
     private jwt: TokenSigner,
-    private logger: FastifyBaseLogger
+    private logger: FastifyBaseLogger,
   ) {}
 
   // Signs an access + refresh pair, each with its own `jti`. The refresh jti is
@@ -86,7 +83,7 @@ export class AuthService {
     });
     const refreshToken = this.jwt.sign(
       { ...payload, type: "refresh", jti: refreshJti },
-      { expiresIn: env.REFRESH_TOKEN_TTL }
+      { expiresIn: env.REFRESH_TOKEN_TTL },
     );
     return { accessToken, refreshToken, refreshJti };
   }
@@ -94,7 +91,7 @@ export class AuthService {
   // Signs a pair and records the refresh token as active in Redis (best-effort;
   // a down Redis still returns usable tokens — cache-design.md §5.1).
   private async issueTokens(
-    payload: JwtPayload
+    payload: JwtPayload,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const { accessToken, refreshToken, refreshJti } = this.buildTokens(payload);
     await storeRefresh(payload.sub, refreshJti, env.REFRESH_TOKEN_TTL);
@@ -119,7 +116,7 @@ export class AuthService {
       gender: input.gender,
     } as CreateUser;
 
-    let user;
+    let user: Awaited<ReturnType<UserRepository["createUser"]>>;
     try {
       user = await this.userRepository.createUser(createUserInput);
     } catch (error) {
@@ -162,9 +159,7 @@ export class AuthService {
   }
 
   async login(input: LoginInput): Promise<AuthSuccess | ErrorResponse> {
-    const user = await this.authRepository.getUserByEmailWithSecret(
-      input.email
-    );
+    const user = await this.authRepository.getUserByEmailWithSecret(input.email);
 
     if (!user || !verifyPassword(input.password, user.password)) {
       return appErrorCodes.AUTH_INVALID_CREDENTIALS;
@@ -197,7 +192,7 @@ export class AuthService {
   // Redis, then swap it for a fresh pair. A valid signature whose jti is gone
   // means the token was already rotated/revoked (reuse) -> hard logout.
   async refresh(
-    refreshToken: string
+    refreshToken: string,
   ): Promise<{ accessToken: string; refreshToken: string } | ErrorResponse> {
     let decoded: JwtPayload;
     try {
@@ -258,9 +253,7 @@ export class AuthService {
     await revokeAllRefresh(payload.sub);
 
     if (env.ACCESS_BLACKLIST_ENABLED && payload.jti) {
-      const remaining = payload.exp
-        ? payload.exp - Math.floor(Date.now() / 1000)
-        : 0;
+      const remaining = payload.exp ? payload.exp - Math.floor(Date.now() / 1000) : 0;
       await blacklistAccess(payload.jti, remaining);
     }
 

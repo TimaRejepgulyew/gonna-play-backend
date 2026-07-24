@@ -1,41 +1,32 @@
-
+import type { FastifyInstance } from "fastify";
 import { getPrisma } from "@/config/prisma.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import { getAuthPayload } from "@/plugins/auth.js";
+import type { PaginationQuery } from "@/types/pagination.js";
 import UserRepository from "../user/user.repository.js";
 import PlayerRepository from "./player.repository.js";
 import {
-  CreatePlayer,
-  PlayerListFilters,
+  type CreatePlayer,
+  type PlayerListFilters,
   PlayerService,
-  UpdatePlayer,
+  type UpdatePlayer,
 } from "./player.service.js";
-
-import type { FastifyInstance } from "fastify";
-import type { PaginationQuery } from "@/types/pagination.js";
 
 export class PlayerController {
   private playerService: PlayerService;
 
-  constructor(
-    _server: FastifyInstance
-  ) {
+  constructor(_server: FastifyInstance) {
     const prisma = getPrisma();
     const playerRepository = new PlayerRepository(prisma);
     const userRepository = new UserRepository(prisma);
-    this.playerService = new PlayerService(
-      playerRepository,
-      userRepository,
-      _server.log
-    );
+    this.playerService = new PlayerService(playerRepository, userRepository, _server.log);
   }
 
   getPlayerList(req: { query: PaginationQuery & PlayerListFilters }) {
-    const { page, limit, sort, order, level, position, status, search } =
-      req.query;
+    const { page, limit, sort, order, level, position, status, search } = req.query;
     return this.playerService.getPlayerList(
       { page, limit, sort, order },
-      { level, position, status, search }
+      { level, position, status, search },
     );
   }
 
@@ -67,10 +58,7 @@ export class PlayerController {
     const id = Number(req.params.id);
     const payload = getAuthPayload(req);
     const existing = await this.playerService.getPlayer(id);
-    if (
-      existing.userId !== payload.sub &&
-      !payload.roles?.includes("admin")
-    ) {
+    if (existing.userId !== payload.sub && !payload.roles?.includes("admin")) {
       return appErrorCodes.AUTH_FORBIDDEN;
     }
     return this.playerService.updatePlayer({ ...req.body, id });

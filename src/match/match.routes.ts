@@ -1,5 +1,6 @@
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-
+import type { FastifyInstance } from "fastify";
 import { rateLimit } from "@/utils/rateLimit.js";
 import { MatchController } from "./match.controller.js";
 import {
@@ -10,14 +11,9 @@ import {
   updateMatchSchema,
 } from "./match.model.js";
 
-import type { FastifyInstance } from "fastify";
-import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-
 const idParamsSchema = Type.Object({ id: Type.String() });
 
-export default async function matchRoutes(
-  fastifyInstance: FastifyInstance
-) {
+export default async function matchRoutes(fastifyInstance: FastifyInstance) {
   const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
   const matchController = new MatchController(fastifyInstance);
 
@@ -26,24 +22,22 @@ export default async function matchRoutes(
   server.get(
     "/list",
     {
-      preHandler: [
-        rateLimit({ action: "match-list", windowSeconds: 60, max: 60 }),
-      ],
+      preHandler: [rateLimit({ action: "match-list", windowSeconds: 60, max: 60 })],
       schema: { querystring: matchListQuerySchema },
     },
-    matchController.listMatches.bind(matchController)
+    matchController.listMatches.bind(matchController),
   );
 
   server.get(
     "/:id",
     { schema: { params: idParamsSchema } },
-    matchController.getMatch.bind(matchController)
+    matchController.getMatch.bind(matchController),
   );
 
   server.post(
     "/",
     { preHandler: [server.authenticate], schema: { body: createMatchSchema } },
-    matchController.createMatch.bind(matchController)
+    matchController.createMatch.bind(matchController),
   );
 
   server.patch(
@@ -52,7 +46,7 @@ export default async function matchRoutes(
       preHandler: [server.authenticate],
       schema: { body: updateMatchSchema, params: idParamsSchema },
     },
-    matchController.updateMatch.bind(matchController)
+    matchController.updateMatch.bind(matchController),
   );
 
   // -------- Status transitions --------
@@ -60,19 +54,19 @@ export default async function matchRoutes(
   server.post(
     "/:id/publish",
     { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
-    matchController.publish.bind(matchController)
+    matchController.publish.bind(matchController),
   );
 
   server.post(
     "/:id/confirm",
     { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
-    matchController.confirm.bind(matchController)
+    matchController.confirm.bind(matchController),
   );
 
   server.post(
     "/:id/cancel",
     { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
-    matchController.cancel.bind(matchController)
+    matchController.cancel.bind(matchController),
   );
 
   // -------- Participation --------
@@ -85,7 +79,7 @@ export default async function matchRoutes(
         params: idParamsSchema,
       },
     },
-    matchController.getParticipants.bind(matchController)
+    matchController.getParticipants.bind(matchController),
   );
 
   server.post(
@@ -94,18 +88,18 @@ export default async function matchRoutes(
       preHandler: [server.authenticate],
       schema: { body: joinSchema, params: idParamsSchema },
     },
-    matchController.join.bind(matchController)
+    matchController.join.bind(matchController),
   );
 
   server.delete(
     "/:id/leave",
     { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
-    matchController.leave.bind(matchController)
+    matchController.leave.bind(matchController),
   );
 
   server.post(
     "/:id/check-in",
     { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
-    matchController.checkIn.bind(matchController)
+    matchController.checkIn.bind(matchController),
   );
 }

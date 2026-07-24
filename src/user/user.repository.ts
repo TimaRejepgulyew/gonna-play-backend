@@ -1,12 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 import { hashToStorage } from "@/auth/password.js";
-import { resolvePagination } from "@/types/pagination.js";
-import { User } from "./user.model.js";
-
-import type { IUserRepository, UserListFilters } from "./user.service.js";
-import type { CreateUser, UpdateUser } from "./types.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
+import { resolvePagination } from "@/types/pagination.js";
+import type { CreateUser, UpdateUser } from "./types.js";
+import type { User } from "./user.model.js";
+import type { IUserRepository, UserListFilters } from "./user.service.js";
 
 const USER_SORT_FIELDS = ["createdAt", "updatedAt", "email", "name", "city"];
 
@@ -15,12 +14,12 @@ export default class UserRepository implements IUserRepository {
 
   async getUserList(
     pagination: PaginationQuery = {},
-    filters: UserListFilters = {}
+    filters: UserListFilters = {},
   ): Promise<PaginatedResult<User>> {
     const { skip, take, page, limit, orderBy } = resolvePagination(
       pagination,
       USER_SORT_FIELDS,
-      "createdAt"
+      "createdAt",
     );
 
     const where = {

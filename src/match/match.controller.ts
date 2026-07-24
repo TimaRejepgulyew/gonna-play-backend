@@ -1,27 +1,24 @@
-import { getPrisma } from "@/config/prisma.js";
-import { getAuthPayload } from "@/plugins/auth.js";
-import FieldRepository from "@/field/field.repository.js";
-import MatchRepository from "./match.repository.js";
-import MatchParticipantRepository from "./match-participant.repository.js";
-import {
-  CreateMatchInput,
-  MatchListFilters,
-  MatchService,
-  UpdateMatchInput,
-} from "./match.service.js";
-
 import type { FastifyInstance } from "fastify";
 import type { Logger } from "pino";
-import type { PaginationQuery } from "@/types/pagination.js";
+import { getPrisma } from "@/config/prisma.js";
 import type { PARTICIPANT_STATUS } from "@/constants/enums.js";
+import FieldRepository from "@/field/field.repository.js";
 import type { PLAYER_POSITION } from "@/player/constant.js";
+import { getAuthPayload } from "@/plugins/auth.js";
+import type { PaginationQuery } from "@/types/pagination.js";
+import MatchRepository from "./match.repository.js";
+import {
+  type CreateMatchInput,
+  type MatchListFilters,
+  MatchService,
+  type UpdateMatchInput,
+} from "./match.service.js";
+import MatchParticipantRepository from "./match-participant.repository.js";
 
 export class MatchController {
   private matchService: MatchService;
 
-  constructor(
-    server: FastifyInstance
-  ) {
+  constructor(server: FastifyInstance) {
     const prisma = getPrisma();
     const matchRepository = new MatchRepository(prisma);
     const participantRepository = new MatchParticipantRepository(prisma);
@@ -30,7 +27,7 @@ export class MatchController {
       matchRepository,
       participantRepository,
       fieldRepository,
-      server.log as unknown as Logger
+      server.log as unknown as Logger,
     );
   }
 
@@ -53,7 +50,7 @@ export class MatchController {
     } = req.query;
     return this.matchService.listMatches(
       { page, limit, sort, order },
-      { city, dateFrom, dateTo, format, level, status, fieldId, organizerId }
+      { city, dateFrom, dateTo, format, level, status, fieldId, organizerId },
     );
   }
 
@@ -65,63 +62,32 @@ export class MatchController {
     return this.matchService.createMatch(getAuthPayload(req), req.body);
   }
 
-  updateMatch(req: {
-    params: { id: string };
-    body: UpdateMatchInput;
-    user?: unknown;
-  }) {
-    return this.matchService.updateMatch(
-      Number(req.params.id),
-      getAuthPayload(req),
-      req.body
-    );
+  updateMatch(req: { params: { id: string }; body: UpdateMatchInput; user?: unknown }) {
+    return this.matchService.updateMatch(Number(req.params.id), getAuthPayload(req), req.body);
   }
 
   // -------- Match status transitions --------
 
   publish(req: { params: { id: string }; user?: unknown }) {
-    return this.matchService.publish(
-      Number(req.params.id),
-      getAuthPayload(req)
-    );
+    return this.matchService.publish(Number(req.params.id), getAuthPayload(req));
   }
 
   confirm(req: { params: { id: string }; user?: unknown }) {
-    return this.matchService.confirm(
-      Number(req.params.id),
-      getAuthPayload(req)
-    );
+    return this.matchService.confirm(Number(req.params.id), getAuthPayload(req));
   }
 
   cancel(req: { params: { id: string }; user?: unknown }) {
-    return this.matchService.cancel(
-      Number(req.params.id),
-      getAuthPayload(req)
-    );
+    return this.matchService.cancel(Number(req.params.id), getAuthPayload(req));
   }
 
   // -------- Participation --------
 
-  getParticipants(req: {
-    params: { id: string };
-    query: { status?: PARTICIPANT_STATUS };
-  }) {
-    return this.matchService.getParticipants(
-      Number(req.params.id),
-      req.query.status
-    );
+  getParticipants(req: { params: { id: string }; query: { status?: PARTICIPANT_STATUS } }) {
+    return this.matchService.getParticipants(Number(req.params.id), req.query.status);
   }
 
-  join(req: {
-    params: { id: string };
-    body?: { position?: PLAYER_POSITION };
-    user?: unknown;
-  }) {
-    return this.matchService.join(
-      Number(req.params.id),
-      getAuthPayload(req),
-      req.body ?? {}
-    );
+  join(req: { params: { id: string }; body?: { position?: PLAYER_POSITION }; user?: unknown }) {
+    return this.matchService.join(Number(req.params.id), getAuthPayload(req), req.body ?? {});
   }
 
   leave(req: { params: { id: string }; user?: unknown }) {
@@ -129,9 +95,6 @@ export class MatchController {
   }
 
   checkIn(req: { params: { id: string }; user?: unknown }) {
-    return this.matchService.checkIn(
-      Number(req.params.id),
-      getAuthPayload(req)
-    );
+    return this.matchService.checkIn(Number(req.params.id), getAuthPayload(req));
   }
 }

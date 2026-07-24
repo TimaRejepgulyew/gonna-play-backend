@@ -34,12 +34,10 @@ export const cacheKeys = {
 
 // Per-match participants form several keys (filtered by status); they share a
 // dedicated version counter so one INCR invalidates all of a match's variants.
-export const participantsClass = (matchId: number) =>
-  `match:participants:${matchId}`;
+export const participantsClass = (matchId: number) => `match:participants:${matchId}`;
 
 // Per-field schedule version class (cache-design.md §4).
-export const fieldScheduleClass = (fieldId: number) =>
-  `field:schedule:${fieldId}`;
+export const fieldScheduleClass = (fieldId: number) => `field:schedule:${fieldId}`;
 
 // Domain-error guard: readers return an entity or an ErrorResponse
 // (`{ code, message }`). Single source of truth for the "error shape"
@@ -72,11 +70,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   }
 }
 
-export async function cacheSet(
-  key: string,
-  value: unknown,
-  ttlSeconds: number
-): Promise<void> {
+export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
   try {
     const redis = getRedis();
     await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
@@ -100,7 +94,7 @@ export async function cacheDel(...keys: string[]): Promise<void> {
 export async function getOrSet<T>(
   key: string,
   ttlSeconds: number,
-  loader: () => Promise<T>
+  loader: () => Promise<T>,
 ): Promise<T> {
   const cached = await cacheGet<T>(key);
   if (cached !== null) return cached;
@@ -140,9 +134,7 @@ export async function bumpVersion(cls: string): Promise<void> {
 // Deterministic serialization of list filters: undefined/null/"" dropped,
 // keys sorted lexicographically, then hashed to a fixed-length digest so the
 // key stays bounded regardless of the number of filters (cache-design.md §3.1).
-export function canonicalizeFilters(
-  filters: Record<string, unknown>
-): string {
+export function canonicalizeFilters(filters: Record<string, unknown>): string {
   const parts: string[] = [];
   for (const key of Object.keys(filters).sort()) {
     const value = filters[key];
@@ -154,10 +146,7 @@ export function canonicalizeFilters(
 }
 
 // Builds a versioned list key: `<cls>:g{N}:{digest}`.
-export async function listKey(
-  cls: string,
-  filters: Record<string, unknown>
-): Promise<string> {
+export async function listKey(cls: string, filters: Record<string, unknown>): Promise<string> {
   const version = await currentVersion(cls);
   return `${cls}:g${version}:${canonicalizeFilters(filters)}`;
 }
@@ -167,7 +156,7 @@ export async function getOrSetList<T>(
   cls: string,
   filters: Record<string, unknown>,
   ttlSeconds: number,
-  loader: () => Promise<T>
+  loader: () => Promise<T>,
 ): Promise<T> {
   const key = await listKey(cls, filters);
   return getOrSet(key, ttlSeconds, loader);

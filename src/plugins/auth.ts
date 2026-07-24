@@ -1,9 +1,8 @@
-import fp from "fastify-plugin";
 import fastifyJwt from "@fastify/jwt";
-
+import fp from "fastify-plugin";
+import { isAccessBlacklisted } from "@/auth/refreshStore.js";
 import env from "@/config/env.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import { isAccessBlacklisted } from "@/auth/refreshStore.js";
 
 export interface JwtPayload {
   sub: number; // user.id
@@ -68,16 +67,10 @@ export default fp(async (fastify) => {
   });
 
   // preHandler factory for role checks. Use AFTER `authenticate`.
-  fastify.decorate(
-    "authorize",
-    (...roles: string[]) =>
-      async (req, reply) => {
-        const payload = getAuthPayload(req);
-        if (!payload?.roles?.some((r) => roles.includes(r))) {
-          return reply
-            .code(appErrorCodes.AUTH_FORBIDDEN.code)
-            .send(appErrorCodes.AUTH_FORBIDDEN);
-        }
-      }
-  );
+  fastify.decorate("authorize", (...roles: string[]) => async (req, reply) => {
+    const payload = getAuthPayload(req);
+    if (!payload?.roles?.some((r) => roles.includes(r))) {
+      return reply.code(appErrorCodes.AUTH_FORBIDDEN.code).send(appErrorCodes.AUTH_FORBIDDEN);
+    }
+  });
 });

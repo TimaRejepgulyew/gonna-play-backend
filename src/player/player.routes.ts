@@ -1,20 +1,12 @@
-import { Type } from "@sinclair/typebox";
-
-import { PlayerController } from "./player.controller.js";
-import {
-  createPlayerSchema,
-  playerListQuerySchema,
-  updatePlayerSchema,
-} from "./player.model.js";
-
-import type { FastifyInstance } from "fastify";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "@sinclair/typebox";
+import type { FastifyInstance } from "fastify";
+import { PlayerController } from "./player.controller.js";
+import { createPlayerSchema, playerListQuerySchema, updatePlayerSchema } from "./player.model.js";
 
 const idParamsSchema = Type.Object({ id: Type.String() });
 
-export default async function playerRoutes(
-  fastifyInstance: FastifyInstance
-) {
+export default async function playerRoutes(fastifyInstance: FastifyInstance) {
   const server = fastifyInstance.withTypeProvider<TypeBoxTypeProvider>();
   const playerController = new PlayerController(fastifyInstance);
 
@@ -24,19 +16,19 @@ export default async function playerRoutes(
       preHandler: [server.authenticate],
       schema: { querystring: playerListQuerySchema },
     },
-    playerController.getPlayerList.bind(playerController)
+    playerController.getPlayerList.bind(playerController),
   );
 
   server.get(
     "/:id",
     { preHandler: [server.authenticate], schema: { params: idParamsSchema } },
-    playerController.getPlayer.bind(playerController)
+    playerController.getPlayer.bind(playerController),
   );
 
   server.post(
     "/",
     { preHandler: [server.authenticate], schema: { body: createPlayerSchema } },
-    playerController.createPlayer.bind(playerController)
+    playerController.createPlayer.bind(playerController),
   );
 
   server.put(
@@ -45,7 +37,7 @@ export default async function playerRoutes(
       preHandler: [server.authenticate],
       schema: { body: updatePlayerSchema, params: idParamsSchema },
     },
-    playerController.updatePlayer.bind(playerController)
+    playerController.updatePlayer.bind(playerController),
   );
 
   server.delete(
@@ -54,6 +46,6 @@ export default async function playerRoutes(
       preHandler: [server.authenticate, server.authorize("admin")],
       schema: { params: idParamsSchema },
     },
-    playerController.deletePlayer.bind(playerController)
+    playerController.deletePlayer.bind(playerController),
   );
 }

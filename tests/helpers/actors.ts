@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
-
-import { getPrisma } from "@/config/prisma.js";
-import { hashToStorage } from "@/auth/password.js";
-
 import type { AppInstance } from "@/app.js";
+import { hashToStorage } from "@/auth/password.js";
+import { getPrisma } from "@/config/prisma.js";
 
 export interface Actor {
   userId: number;
@@ -27,7 +25,7 @@ const DEFAULT_PASSWORD = "Passw0rd!";
 async function login(
   app: AppInstance,
   email: string,
-  password: string
+  password: string,
 ): Promise<{ accessToken: string; playerId?: number }> {
   const res = await app.inject({
     method: "POST",
@@ -36,9 +34,7 @@ async function login(
   });
 
   if (res.statusCode !== 200) {
-    throw new Error(
-      `Login failed for ${email}: ${res.statusCode} ${res.payload}`
-    );
+    throw new Error(`Login failed for ${email}: ${res.statusCode} ${res.payload}`);
   }
 
   const body = res.json() as {
@@ -64,10 +60,7 @@ async function login(
  * Ни один актор не берётся из сида: TRUNCATE в beforeEach сносит users и
  * user_roles, а global-setup сеет только справочник ролей.
  */
-export async function createActor(
-  app: AppInstance,
-  opts: CreateActorOptions = {}
-): Promise<Actor> {
+export async function createActor(app: AppInstance, opts: CreateActorOptions = {}): Promise<Actor> {
   // Клиент берётся в момент вызова, а не на импорте модуля: после closePrisma()
   // слот освобождается, и следующий вызов получит свежий клиент.
   const prisma = getPrisma();
@@ -111,10 +104,7 @@ export async function createActor(
  * Пользователя не пересоздаёт — только повторный HTTP-логин теми же учётными
  * данными, чтобы новый payload увидел актуальные роли и playerId.
  */
-export async function relogin(
-  app: AppInstance,
-  actor: Actor
-): Promise<string> {
+export async function relogin(app: AppInstance, actor: Actor): Promise<string> {
   const { accessToken } = await login(app, actor.email, actor.password);
   return accessToken;
 }

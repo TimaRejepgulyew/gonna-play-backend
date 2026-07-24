@@ -1,24 +1,15 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { MATCH_STATUS, PARTICIPANT_STATUS } from "@/constants/enums.js";
-
-import { SEATED_STATUSES } from "./match.service.js";
-
-import type {
-  IMatchParticipantRepository,
-  ParticipantRecord,
-} from "./match.service.js";
 import type { PLAYER_POSITION } from "@/player/constant.js";
 
-export default class MatchParticipantRepository
-  implements IMatchParticipantRepository
-{
+import type { IMatchParticipantRepository, ParticipantRecord } from "./match.service.js";
+import { SEATED_STATUSES } from "./match.service.js";
+
+export default class MatchParticipantRepository implements IMatchParticipantRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async listByMatch(
-    matchId: number,
-    status?: PARTICIPANT_STATUS
-  ): Promise<ParticipantRecord[]> {
+  async listByMatch(matchId: number, status?: PARTICIPANT_STATUS): Promise<ParticipantRecord[]> {
     const rows = await this.prisma.matchParticipant.findMany({
       where: { matchId, ...(status ? { status } : {}) },
       include: { player: true },
@@ -27,19 +18,13 @@ export default class MatchParticipantRepository
     return rows as unknown as ParticipantRecord[];
   }
 
-  async findByMatchAndPlayer(
-    matchId: number,
-    playerId: number
-  ): Promise<ParticipantRecord | null> {
+  async findByMatchAndPlayer(matchId: number, playerId: number): Promise<ParticipantRecord | null> {
     return this.prisma.matchParticipant.findUnique({
       where: { matchId_playerId: { matchId, playerId } },
     }) as unknown as Promise<ParticipantRecord | null>;
   }
 
-  async updateStatus(
-    id: number,
-    status: PARTICIPANT_STATUS
-  ): Promise<ParticipantRecord> {
+  async updateStatus(id: number, status: PARTICIPANT_STATUS): Promise<ParticipantRecord> {
     const updated = await this.prisma.matchParticipant.update({
       where: { id },
       data: { status },
@@ -57,9 +42,7 @@ export default class MatchParticipantRepository
   // conflict / serialization failure (Prisma P2034). Every capacity-sensitive
   // transaction routes through here so the Prisma error code never leaks to the
   // service layer.
-  private async runSerializable<T>(
-    fn: (tx: Prisma.TransactionClient) => Promise<T>
-  ): Promise<T> {
+  private async runSerializable<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     const run = () =>
       this.prisma.$transaction(fn, {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -67,10 +50,7 @@ export default class MatchParticipantRepository
     try {
       return await run();
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2034"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
         return run();
       }
       throw error;
@@ -85,16 +65,14 @@ export default class MatchParticipantRepository
     matchId: number,
     playerId: number,
     maxPlayers: number,
-    data: { position?: PLAYER_POSITION }
+    data: { position?: PLAYER_POSITION },
   ): Promise<{ participant: ParticipantRecord; waitlisted: boolean } | null> {
     return this.runSerializable(async (tx) => {
       const seated = await tx.matchParticipant.count({
         where: { matchId, status: { in: SEATED_STATUSES } },
       });
       const target =
-        seated < maxPlayers
-          ? PARTICIPANT_STATUS.REGISTERED
-          : PARTICIPANT_STATUS.WAITLISTED;
+        seated < maxPlayers ? PARTICIPANT_STATUS.REGISTERED : PARTICIPANT_STATUS.WAITLISTED;
 
       const existing = (await tx.matchParticipant.findUnique({
         where: { matchId_playerId: { matchId, playerId } },
@@ -126,10 +104,7 @@ export default class MatchParticipantRepository
       }
 
       // Flip to FULL only when still OPEN and the last seat was just taken.
-      if (
-        target === PARTICIPANT_STATUS.REGISTERED &&
-        seated + 1 >= maxPlayers
-      ) {
+      if (target === PARTICIPANT_STATUS.REGISTERED && seated + 1 >= maxPlayers) {
         await tx.match.updateMany({
           where: { id: matchId, status: MATCH_STATUS.OPEN },
           data: { status: MATCH_STATUS.FULL },
@@ -150,7 +125,7 @@ export default class MatchParticipantRepository
     matchId: number,
     participantId: number,
     wasSeated: boolean,
-    maxPlayers: number
+    maxPlayers: number,
   ): Promise<{ left: ParticipantRecord; promoted: ParticipantRecord | null }> {
     return this.runSerializable(async (tx) => {
       const left = await tx.matchParticipant.update({
@@ -160,11 +135,7 @@ export default class MatchParticipantRepository
 
       let promoted: ParticipantRecord | null = null;
       if (wasSeated) {
-        const promotedList = await this.promoteToCapacity(
-          tx,
-          matchId,
-          maxPlayers
-        );
+        const promotedList = await this.promoteToCapacity(tx, matchId, maxPlayers);
         promoted = promotedList[0] ?? null;
       }
 
@@ -185,7 +156,7 @@ export default class MatchParticipantRepository
   // raises the limit on a FULL match). Returns the number promoted.
   async promoteWaitlist(matchId: number, maxPlayers: number): Promise<number> {
     const promoted = await this.runSerializable((tx) =>
-      this.promoteToCapacity(tx, matchId, maxPlayers)
+      this.promoteToCapacity(tx, matchId, maxPlayers),
     );
     return promoted.length;
   }
@@ -196,7 +167,7 @@ export default class MatchParticipantRepository
   private async promoteToCapacity(
     tx: Prisma.TransactionClient,
     matchId: number,
-    maxPlayers: number
+    maxPlayers: number,
   ): Promise<ParticipantRecord[]> {
     const promoted: ParticipantRecord[] = [];
     let seated = await tx.matchParticipant.count({

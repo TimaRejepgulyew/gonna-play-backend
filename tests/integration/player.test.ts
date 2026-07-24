@@ -6,12 +6,10 @@
 // кода — src/player/player.routes.ts:38 объявляет `schema: { body: createPlayerSchema }`,
 // то есть валидация работает, и тест ассертит 400 по факту (NG2).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import { createTestApp, destroyTestApp } from "../helpers/app.js";
-import { createActor, relogin } from "../helpers/actors.js";
-
 import type { AppInstance } from "@/app.js";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import { createActor, relogin } from "../helpers/actors.js";
+import { createTestApp, destroyTestApp } from "../helpers/app.js";
 
 let app: AppInstance;
 

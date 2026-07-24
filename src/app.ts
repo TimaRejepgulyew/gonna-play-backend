@@ -1,15 +1,13 @@
-import Fastify from "fastify";
 import cors from "@fastify/cors";
-
-import configureRoutes from "./router.js";
+import type { FastifyInstance, FastifyServerOptions } from "fastify";
+import Fastify from "fastify";
 import loggerConfig from "./config/logger.js";
+import authPlugin from "./plugins/auth.js";
 import prismaPlugin from "./plugins/prisma.js";
 import redisPlugin from "./plugins/redis.js";
-import authPlugin from "./plugins/auth.js";
 import swaggerPlugin from "./plugins/swagger.js";
+import configureRoutes from "./router.js";
 import { isErrorShape } from "./utils/cache.js";
-
-import type { FastifyInstance, FastifyServerOptions } from "fastify";
 
 // Тип экземпляра, который возвращает Fastify({ logger }) — тот же, что принимает
 // configureRoutes (src/router.ts:12-14). Логгер здесь FastifyBaseLogger, а не pino Logger:

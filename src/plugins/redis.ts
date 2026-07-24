@@ -1,5 +1,5 @@
-import fp from "fastify-plugin";
 import fastifyRedis from "@fastify/redis";
+import fp from "fastify-plugin";
 
 import { closeRedis, getRedis } from "@/config/redis.js";
 

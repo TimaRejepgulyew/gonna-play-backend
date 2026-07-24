@@ -8,7 +8,9 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
     "dev": "npx tsx watch src/index.ts",
-    "lint": "eslint --ext .ts src/",
+    "lint": "biome ci .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
@@ -49,35 +51,36 @@
   },
   "homepage": "https://github.com/TimaRejepgulyew/gonna-play-backend#readme",
   "dependencies": {
-    "@fastify/cookie": "^11.0.2",
-    "@fastify/cors": "^11.0.1",
-    "@fastify/helmet": "^13.0.1",
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.0",
     "@fastify/jwt": "^10.2.0",
     "@fastify/redis": "^8.0.0",
-    "@fastify/swagger": "^9.5.1",
+    "@fastify/swagger": "^9.8.1",
     "@prisma/client": "^6.7.0",
-    "dotenv": "^16.5.0",
+    "dotenv": "^17.4.2",
     "fastify": "^5.10.0",
     "fastify-plugin": "^5.0.1",
     "ioredis": "^5.11.1",
-    "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0"
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3"
   },
   "devDependencies": {
-    "@fastify/type-provider-typebox": "^5.1.0",
-    "@sinclair/typebox": "^0.34.33",
-    "@types/node": "^22.15.17",
-    "@vitest/coverage-v8": "^3",
+    "@biomejs/biome": "2.5.5",
+    "@fastify/type-provider-typebox": "^5.2.0",
+    "@sinclair/typebox": "^0.34.52",
+    "@types/node": "^24.13.3",
+    "@vitest/coverage-v8": "^4",
     "newman": "^6.2.2",
     "openapi-to-postmanv2": "^6.3.0",
     "prisma": "^6.7.0",
     "tsc-alias": "^1.9.1",
     "tsx": "^4.19.4",
     "typescript": "^5.9.3",
-    "vitest": "^3"
+    "vitest": "^4"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   }
 }

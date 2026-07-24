@@ -1,16 +1,13 @@
+import type { FastifyInstance } from "fastify";
 import { getPrisma } from "@/config/prisma.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import RatingRepository from "./rating.repository.js";
-import { CreateRatingInput, RatingService } from "./rating.service.js";
-
-import type { FastifyInstance } from "fastify";
+import { type CreateRatingInput, RatingService } from "./rating.service.js";
 
 export class RatingController {
   private ratingService: RatingService;
 
-  constructor(
-    server: FastifyInstance
-  ) {
+  constructor(server: FastifyInstance) {
     const prisma = getPrisma();
     const ratingRepository = new RatingRepository(prisma);
     this.ratingService = new RatingService(ratingRepository, server.log);
@@ -25,16 +22,10 @@ export class RatingController {
   }
 
   getMatchRatings(req: { params: { matchId: string }; user?: unknown }) {
-    return this.ratingService.getMatchRatings(
-      Number(req.params.matchId),
-      getAuthPayload(req)
-    );
+    return this.ratingService.getMatchRatings(Number(req.params.matchId), getAuthPayload(req));
   }
 
   deleteRating(req: { params: { id: string }; user?: unknown }) {
-    return this.ratingService.deleteRating(
-      Number(req.params.id),
-      getAuthPayload(req)
-    );
+    return this.ratingService.deleteRating(Number(req.params.id), getAuthPayload(req));
   }
 }

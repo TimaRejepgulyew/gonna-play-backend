@@ -1,38 +1,29 @@
 import { Prisma } from "@prisma/client";
-
-import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import type { Logger } from "pino";
 import {
-  MATCH_FORMAT,
+  type MATCH_FORMAT,
   MATCH_STATUS,
-  MATCH_VISIBILITY,
+  type MATCH_VISIBILITY,
   PARTICIPANT_STATUS,
-  TEAM_SIDE,
+  type TEAM_SIDE,
 } from "@/constants/enums.js";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import type { IFieldRepository } from "@/field/field.service.js";
+import { type PLAYER_LEVEL, PLAYER_LEVEL_ORDER, type PLAYER_POSITION } from "@/player/constant.js";
+import type { JwtPayload } from "@/plugins/auth.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
+import type { ErrorResponse } from "@/types/prisma.js";
 import {
-  PLAYER_LEVEL,
-  PLAYER_LEVEL_ORDER,
-  PLAYER_POSITION,
-} from "@/player/constant.js";
-import {
-  CACHE_TTL,
-  cacheKeys,
-  cacheDel,
   bumpVersion,
+  CACHE_TTL,
+  cacheDel,
+  cacheKeys,
+  fieldScheduleClass,
   getOrSet,
   getOrSetList,
   participantsClass,
-  fieldScheduleClass,
 } from "@/utils/cache.js";
-import { Match } from "./match.model.js";
-
-import type { Logger } from "pino";
-import type { ErrorResponse } from "@/types/prisma.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
-import type { JwtPayload } from "@/plugins/auth.js";
-import type { IFieldRepository } from "@/field/field.service.js";
+import type { Match } from "./match.model.js";
 
 export interface CreateMatchInput {
   fieldId: number;
@@ -131,7 +122,7 @@ export interface ParticipantRecord {
 export interface IMatchRepository {
   listMatches(
     pagination?: PaginationQuery,
-    filters?: MatchListFilters
+    filters?: MatchListFilters,
   ): Promise<PaginatedResult<Match>>;
   getMatch(id: number): Promise<Match | null>;
   findById(id: number): Promise<MatchRecord | null>;
@@ -141,18 +132,9 @@ export interface IMatchRepository {
 }
 
 export interface IMatchParticipantRepository {
-  listByMatch(
-    matchId: number,
-    status?: PARTICIPANT_STATUS
-  ): Promise<ParticipantRecord[]>;
-  findByMatchAndPlayer(
-    matchId: number,
-    playerId: number
-  ): Promise<ParticipantRecord | null>;
-  updateStatus(
-    id: number,
-    status: PARTICIPANT_STATUS
-  ): Promise<ParticipantRecord>;
+  listByMatch(matchId: number, status?: PARTICIPANT_STATUS): Promise<ParticipantRecord[]>;
+  findByMatchAndPlayer(matchId: number, playerId: number): Promise<ParticipantRecord | null>;
+  updateStatus(id: number, status: PARTICIPANT_STATUS): Promise<ParticipantRecord>;
   // Seated players occupy a slot: REGISTERED | CONFIRMED | CHECKED_IN.
   countSeated(matchId: number): Promise<number>;
   // Transactional join. Returns null when an active participation already
@@ -162,14 +144,14 @@ export interface IMatchParticipantRepository {
     matchId: number,
     playerId: number,
     maxPlayers: number,
-    data: { position?: PLAYER_POSITION }
+    data: { position?: PLAYER_POSITION },
   ): Promise<{ participant: ParticipantRecord; waitlisted: boolean } | null>;
   // Transactional leave: CANCELLED + head-of-queue promotion + FULL<->OPEN flip.
   leaveWithPromotion(
     matchId: number,
     participantId: number,
     wasSeated: boolean,
-    maxPlayers: number
+    maxPlayers: number,
   ): Promise<{ left: ParticipantRecord; promoted: ParticipantRecord | null }>;
   // Bulk REGISTERED -> CONFIRMED; returns affected count.
   confirmAllRegistered(matchId: number): Promise<number>;
@@ -191,16 +173,8 @@ export const SEATED_STATUSES: PARTICIPANT_STATUS[] = [
 // guard rejects them as manual targets.
 const MATCH_TRANSITIONS: Record<MATCH_STATUS, MATCH_STATUS[]> = {
   [MATCH_STATUS.DRAFT]: [MATCH_STATUS.OPEN, MATCH_STATUS.CANCELLED],
-  [MATCH_STATUS.OPEN]: [
-    MATCH_STATUS.FULL,
-    MATCH_STATUS.CONFIRMED,
-    MATCH_STATUS.CANCELLED,
-  ],
-  [MATCH_STATUS.FULL]: [
-    MATCH_STATUS.OPEN,
-    MATCH_STATUS.CONFIRMED,
-    MATCH_STATUS.CANCELLED,
-  ],
+  [MATCH_STATUS.OPEN]: [MATCH_STATUS.FULL, MATCH_STATUS.CONFIRMED, MATCH_STATUS.CANCELLED],
+  [MATCH_STATUS.FULL]: [MATCH_STATUS.OPEN, MATCH_STATUS.CONFIRMED, MATCH_STATUS.CANCELLED],
   [MATCH_STATUS.CONFIRMED]: [MATCH_STATUS.IN_PROGRESS, MATCH_STATUS.CANCELLED],
   [MATCH_STATUS.IN_PROGRESS]: [MATCH_STATUS.FINISHED, MATCH_STATUS.CANCELLED],
   [MATCH_STATUS.FINISHED]: [],
@@ -212,7 +186,7 @@ export class MatchService {
     private matchRepository: IMatchRepository,
     private participantRepository: IMatchParticipantRepository,
     private fieldRepository: IFieldRepository,
-    private logger: Logger
+    private logger: Logger,
   ) {}
 
   private isAdmin(payload: JwtPayload): boolean {
@@ -220,16 +194,11 @@ export class MatchService {
   }
 
   private isOrganizer(payload: JwtPayload, match: MatchRecord): boolean {
-    return (
-      payload.playerId !== undefined && payload.playerId === match.organizerId
-    );
+    return payload.playerId !== undefined && payload.playerId === match.organizerId;
   }
 
   // skillMin must not rank above skillMax; either being absent is valid.
-  private isSkillRangeValid(
-    min?: PLAYER_LEVEL | null,
-    max?: PLAYER_LEVEL | null
-  ): boolean {
+  private isSkillRangeValid(min?: PLAYER_LEVEL | null, max?: PLAYER_LEVEL | null): boolean {
     if (!min || !max) return true;
     return PLAYER_LEVEL_ORDER.indexOf(min) <= PLAYER_LEVEL_ORDER.indexOf(max);
   }
@@ -238,23 +207,18 @@ export class MatchService {
 
   listMatches(
     pagination?: PaginationQuery,
-    filters?: MatchListFilters
+    filters?: MatchListFilters,
   ): Promise<PaginatedResult<Match>> {
     // Cache class `match:list` (versioned) — cache-design.md §3/§4.
-    return getOrSetList(
-      "match:list",
-      { ...pagination, ...filters },
-      CACHE_TTL.MATCH_LIST,
-      () => this.matchRepository.listMatches(pagination, filters)
+    return getOrSetList("match:list", { ...pagination, ...filters }, CACHE_TTL.MATCH_LIST, () =>
+      this.matchRepository.listMatches(pagination, filters),
     );
   }
 
   async getMatch(id: number): Promise<Match | ErrorResponse> {
     // Cache class `match:detail` (single key, DEL invalidation).
-    const match = await getOrSet(
-      cacheKeys.matchDetail(id),
-      CACHE_TTL.MATCH_DETAIL,
-      () => this.matchRepository.getMatch(id)
+    const match = await getOrSet(cacheKeys.matchDetail(id), CACHE_TTL.MATCH_DETAIL, () =>
+      this.matchRepository.getMatch(id),
     );
     if (!match) {
       return appErrorCodes.MATCH_NOT_FOUND;
@@ -262,10 +226,7 @@ export class MatchService {
     return match;
   }
 
-  async createMatch(
-    payload: JwtPayload,
-    input: CreateMatchInput
-  ): Promise<Match | ErrorResponse> {
+  async createMatch(payload: JwtPayload, input: CreateMatchInput): Promise<Match | ErrorResponse> {
     if (!payload.playerId) {
       return appErrorCodes.PLAYER_PROFILE_REQUIRED;
     }
@@ -301,17 +262,14 @@ export class MatchService {
       status: MATCH_STATUS.DRAFT,
     });
     // New match affects the list and the field's schedule.
-    await Promise.all([
-      bumpVersion("match:list"),
-      bumpVersion(fieldScheduleClass(input.fieldId)),
-    ]);
+    await Promise.all([bumpVersion("match:list"), bumpVersion(fieldScheduleClass(input.fieldId))]);
     return created;
   }
 
   async updateMatch(
     id: number,
     payload: JwtPayload,
-    input: UpdateMatchInput
+    input: UpdateMatchInput,
   ): Promise<Match | ErrorResponse> {
     const match = await this.matchRepository.findById(id);
     if (!match) {
@@ -320,10 +278,7 @@ export class MatchService {
     if (!this.isOrganizer(payload, match) && !this.isAdmin(payload)) {
       return appErrorCodes.FORBIDDEN_NOT_ORGANIZER;
     }
-    if (
-      match.status === MATCH_STATUS.FINISHED ||
-      match.status === MATCH_STATUS.CANCELLED
-    ) {
+    if (match.status === MATCH_STATUS.FINISHED || match.status === MATCH_STATUS.CANCELLED) {
       return appErrorCodes.MATCH_NOT_EDITABLE;
     }
 
@@ -348,28 +303,16 @@ export class MatchService {
 
     const data: UpdateMatchData = {
       ...(input.title !== undefined ? { title: input.title } : {}),
-      ...(input.startsAt !== undefined
-        ? { startsAt: new Date(input.startsAt) }
-        : {}),
-      ...(input.durationMin !== undefined
-        ? { durationMin: input.durationMin }
-        : {}),
-      ...(input.minPlayers !== undefined
-        ? { minPlayers: input.minPlayers }
-        : {}),
-      ...(input.maxPlayers !== undefined
-        ? { maxPlayers: input.maxPlayers }
-        : {}),
+      ...(input.startsAt !== undefined ? { startsAt: new Date(input.startsAt) } : {}),
+      ...(input.durationMin !== undefined ? { durationMin: input.durationMin } : {}),
+      ...(input.minPlayers !== undefined ? { minPlayers: input.minPlayers } : {}),
+      ...(input.maxPlayers !== undefined ? { maxPlayers: input.maxPlayers } : {}),
       ...(input.price !== undefined ? { price: input.price } : {}),
       ...(input.currency !== undefined ? { currency: input.currency } : {}),
-      ...(input.visibility !== undefined
-        ? { visibility: input.visibility }
-        : {}),
+      ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
       ...(input.skillMin !== undefined ? { skillMin: input.skillMin } : {}),
       ...(input.skillMax !== undefined ? { skillMax: input.skillMax } : {}),
-      ...(input.description !== undefined
-        ? { description: input.description }
-        : {}),
+      ...(input.description !== undefined ? { description: input.description } : {}),
     };
 
     let response: Match | null = null;
@@ -445,7 +388,7 @@ export class MatchService {
   private async transitionStatus(
     match: MatchRecord,
     next: MATCH_STATUS,
-    payload: JwtPayload
+    payload: JwtPayload,
   ): Promise<Match | ErrorResponse> {
     if (!this.isOrganizer(payload, match) && !this.isAdmin(payload)) {
       return appErrorCodes.FORBIDDEN_NOT_ORGANIZER;
@@ -491,7 +434,7 @@ export class MatchService {
   private async runTransition(
     id: number,
     next: MATCH_STATUS,
-    payload: JwtPayload
+    payload: JwtPayload,
   ): Promise<Match | ErrorResponse> {
     const match = await this.matchRepository.findById(id);
     if (!match) {
@@ -519,18 +462,15 @@ export class MatchService {
 
   async getParticipants(
     matchId: number,
-    status?: PARTICIPANT_STATUS
+    status?: PARTICIPANT_STATUS,
   ): Promise<ParticipantRecord[] | ErrorResponse> {
     const match = await this.matchRepository.findById(matchId);
     if (!match) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
     // Cache class `match:participants` (per-match version, status variants).
-    return getOrSetList(
-      participantsClass(matchId),
-      { status },
-      CACHE_TTL.MATCH_PARTICIPANTS,
-      () => this.participantRepository.listByMatch(matchId, status)
+    return getOrSetList(participantsClass(matchId), { status }, CACHE_TTL.MATCH_PARTICIPANTS, () =>
+      this.participantRepository.listByMatch(matchId, status),
     );
   }
 
@@ -538,10 +478,7 @@ export class MatchService {
   // card and the per-match participants list. `affectsList` also bumps the
   // match list version when seated count / match status can change (join,
   // leave) — cache-design.md §4.
-  private async invalidateParticipation(
-    matchId: number,
-    affectsList: boolean
-  ): Promise<void> {
+  private async invalidateParticipation(matchId: number, affectsList: boolean): Promise<void> {
     const ops: Promise<void>[] = [
       cacheDel(cacheKeys.matchDetail(matchId)),
       bumpVersion(participantsClass(matchId)),
@@ -555,7 +492,7 @@ export class MatchService {
   async join(
     matchId: number,
     payload: JwtPayload,
-    input: { position?: PLAYER_POSITION }
+    input: { position?: PLAYER_POSITION },
   ): Promise<ParticipantRecord | ErrorResponse> {
     if (!payload.playerId) {
       return appErrorCodes.PLAYER_PROFILE_REQUIRED;
@@ -564,10 +501,7 @@ export class MatchService {
     if (!match) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
-    if (
-      match.status !== MATCH_STATUS.OPEN &&
-      match.status !== MATCH_STATUS.FULL
-    ) {
+    if (match.status !== MATCH_STATUS.OPEN && match.status !== MATCH_STATUS.FULL) {
       return appErrorCodes.MATCH_NOT_OPEN;
     }
 
@@ -580,13 +514,10 @@ export class MatchService {
         matchId,
         payload.playerId,
         match.maxPlayers,
-        { position: input.position }
+        { position: input.position },
       );
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         return appErrorCodes.PARTICIPANT_ALREADY_JOINED;
       }
       this.logger.error(error);
@@ -601,10 +532,7 @@ export class MatchService {
   }
 
   // Transactional leave: frees the slot and promotes the head of the queue.
-  async leave(
-    matchId: number,
-    payload: JwtPayload
-  ): Promise<ParticipantRecord | ErrorResponse> {
+  async leave(matchId: number, payload: JwtPayload): Promise<ParticipantRecord | ErrorResponse> {
     if (!payload.playerId) {
       return appErrorCodes.PLAYER_PROFILE_REQUIRED;
     }
@@ -614,7 +542,7 @@ export class MatchService {
     }
     const participant = await this.participantRepository.findByMatchAndPlayer(
       matchId,
-      payload.playerId
+      payload.playerId,
     );
     if (!participant) {
       return appErrorCodes.PARTICIPANT_NOT_FOUND;
@@ -635,7 +563,7 @@ export class MatchService {
       matchId,
       participant.id,
       wasSeated,
-      match.maxPlayers
+      match.maxPlayers,
     );
     // Leaving frees a slot and can flip status -> refresh list too.
     await this.invalidateParticipation(matchId, true);
@@ -643,10 +571,7 @@ export class MatchService {
   }
 
   // Self check-in on arrival: REGISTERED|CONFIRMED -> CHECKED_IN.
-  async checkIn(
-    matchId: number,
-    payload: JwtPayload
-  ): Promise<ParticipantRecord | ErrorResponse> {
+  async checkIn(matchId: number, payload: JwtPayload): Promise<ParticipantRecord | ErrorResponse> {
     if (!payload.playerId) {
       return appErrorCodes.PLAYER_PROFILE_REQUIRED;
     }
@@ -654,15 +579,12 @@ export class MatchService {
     if (!match) {
       return appErrorCodes.MATCH_NOT_FOUND;
     }
-    if (
-      match.status !== MATCH_STATUS.CONFIRMED &&
-      match.status !== MATCH_STATUS.IN_PROGRESS
-    ) {
+    if (match.status !== MATCH_STATUS.CONFIRMED && match.status !== MATCH_STATUS.IN_PROGRESS) {
       return appErrorCodes.CHECK_IN_NOT_ALLOWED;
     }
     const participant = await this.participantRepository.findByMatchAndPlayer(
       matchId,
-      payload.playerId
+      payload.playerId,
     );
     if (!participant) {
       return appErrorCodes.PARTICIPANT_NOT_FOUND;
@@ -676,7 +598,7 @@ export class MatchService {
 
     const updated = await this.participantRepository.updateStatus(
       participant.id,
-      PARTICIPANT_STATUS.CHECKED_IN
+      PARTICIPANT_STATUS.CHECKED_IN,
     );
     // Check-in does not change seated count -> no match:list bump.
     await this.invalidateParticipation(matchId, false);

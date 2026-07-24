@@ -2,8 +2,8 @@
 // project in vitest.config.ts (§9.4) so they apply to every unit file instead of
 // being duplicated by hand.
 
-import { afterEach, beforeEach, expect } from "vitest";
 import type { Redis } from "ioredis";
+import { afterEach, beforeEach, expect } from "vitest";
 
 import { closeRedis, setRedis } from "@/config/redis.js";
 

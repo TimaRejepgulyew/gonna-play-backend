@@ -10,10 +10,9 @@
 // добавлении нового интерфейса не меняется: добавляется только фабрика,
 // использующая `InMemoryStore`.
 
-import { buildMeta } from "@/types/pagination.js";
-
 import type Field from "@/field/field.model.js";
 import type { IFieldRepository } from "@/field/field.service.js";
+import { buildMeta } from "@/types/pagination.js";
 
 /** Минимум, который каркас требует от строки хранилища. */
 export interface StoredEntity {
@@ -154,9 +153,7 @@ export function createFakeAuthRepository(): FakeAuthRepository {
       calls.getRoleNames.length = 0;
       calls.getPlayerIdByUserId.length = 0;
     },
-    async getUserByEmailWithSecret(
-      email: string
-    ): Promise<UserWithSecret | null> {
+    async getUserByEmailWithSecret(email: string): Promise<UserWithSecret | null> {
       calls.getUserByEmailWithSecret.push(email);
       const row = users.find((candidate) => candidate.email === email);
       if (!row) return null;
@@ -199,9 +196,8 @@ export function createFakeFieldRepository(): FakeFieldRepository {
     async getFieldList(pagination, filters) {
       const rows = fields.filter((row) =>
         Object.entries(filters ?? {}).every(
-          ([key, value]) =>
-            value === undefined || row[key as keyof Field] === value
-        )
+          ([key, value]) => value === undefined || row[key as keyof Field] === value,
+        ),
       );
       const page = pagination?.page ?? 1;
       const limit = pagination?.limit ?? 20;

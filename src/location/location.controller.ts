@@ -1,21 +1,18 @@
+import type { FastifyInstance } from "fastify";
 import { getPrisma } from "@/config/prisma.js";
+import type { PaginationQuery } from "@/types/pagination.js";
 import LocationRepository from "./location.repository.js";
 import {
-  CreateLocation,
-  LocationListFilters,
+  type CreateLocation,
+  type LocationListFilters,
   LocationService,
-  UpdateLocation,
+  type UpdateLocation,
 } from "./location.service.js";
-
-import type { FastifyInstance } from "fastify";
-import type { PaginationQuery } from "@/types/pagination.js";
 
 export class LocationController {
   private locationService: LocationService;
 
-  constructor(
-    server: FastifyInstance
-  ) {
+  constructor(server: FastifyInstance) {
     const prisma = getPrisma();
     const locationRepository = new LocationRepository(prisma);
     this.locationService = new LocationService(locationRepository, server.log);
@@ -25,7 +22,7 @@ export class LocationController {
     const { page, limit, sort, order, city, country, search } = req.query;
     return this.locationService.getLocationList(
       { page, limit, sort, order },
-      { city, country, search }
+      { city, country, search },
     );
   }
 

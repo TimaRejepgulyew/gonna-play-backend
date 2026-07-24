@@ -1,5 +1,5 @@
-import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
 
 const srcDir = fileURLToPath(new URL("./src", import.meta.url));
 
@@ -58,13 +58,16 @@ export default defineConfig({
           include: ["tests/integration/**/*.test.ts"],
           setupFiles: ["tests/setup/env.ts", "tests/setup/integration-setup.ts"],
           globalSetup: ["tests/setup/global-setup.ts"],
-          // singleFork: true загоняет ВСЕ файлы проекта в один форк, то есть они
-          // и так идут строго последовательно — отдельный fileParallelism не нужен.
-          // В Vitest 3.2 fileParallelism живёт только в корневом test-конфиге
-          // (NonProjectOptions), внутри проекта его указать нельзя; в корень его
-          // выносить тоже нельзя — это сериализовало бы и юнит-проект.
+          // Интеграционные файлы обязаны идти строго последовательно: общая БД,
+          // TRUNCATE + FLUSHDB между тестами (README.md:11) — параллельный доступ
+          // ронял бы прогон гонкой. В Vitest 4 это задаёт fileParallelism: false
+          // на уровне проекта: опция форсит maxWorkers=1, файлы гоняются по одному,
+          // юнит-проект остаётся параллельным. В Vitest 3.2 fileParallelism жил
+          // только в корневом NonProjectOptions, а сериализацию давал
+          // poolOptions.forks.singleFork; в v4 poolOptions из конфига убран, а
+          // singleFork заменён именно fileParallelism (проверено миграцией на v4).
           pool: "forks",
-          poolOptions: { forks: { singleFork: true } },
+          fileParallelism: false,
           testTimeout: 20_000,
           hookTimeout: 60_000,
         },

@@ -72,7 +72,16 @@ async function countAll(): Promise<Record<string, number>> {
       prisma.user.count(),
     ]);
 
-  return { playerRatings, matchParticipants, matches, fields, locations, players, userRoles, users };
+  return {
+    playerRatings,
+    matchParticipants,
+    matches,
+    fields,
+    locations,
+    players,
+    userRoles,
+    users,
+  };
 }
 
 describe("resetDatabase()", () => {

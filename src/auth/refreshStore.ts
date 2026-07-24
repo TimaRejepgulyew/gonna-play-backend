@@ -10,8 +10,7 @@ import { getRedis } from "@/config/redis.js";
 // security decisions return an explicit "unavailable" state so the caller can
 // choose a fail-open branch instead of silently treating it as "missing".
 
-const refreshKey = (userId: number, jti: string) =>
-  `auth:refresh:${userId}:${jti}`;
+const refreshKey = (userId: number, jti: string) => `auth:refresh:${userId}:${jti}`;
 const userSetKey = (userId: number) => `auth:refresh:user:${userId}`;
 const blacklistKey = (jti: string) => `auth:blacklist:${jti}`;
 
@@ -27,7 +26,7 @@ export async function storeRefresh(
   userId: number,
   jti: string,
   ttlSeconds: number,
-  meta: RefreshMeta = {}
+  meta: RefreshMeta = {},
 ): Promise<void> {
   try {
     const redis = getRedis();
@@ -35,7 +34,7 @@ export async function storeRefresh(
       refreshKey(userId, jti),
       JSON.stringify({ createdAt: Date.now(), ...meta }),
       "EX",
-      ttlSeconds
+      ttlSeconds,
     );
     await redis.sadd(userSetKey(userId), jti);
     await redis.expire(userSetKey(userId), ttlSeconds);
@@ -45,10 +44,7 @@ export async function storeRefresh(
 }
 
 // Presence check used for rotation / reuse detection.
-export async function checkRefresh(
-  userId: number,
-  jti: string
-): Promise<RefreshCheck> {
+export async function checkRefresh(userId: number, jti: string): Promise<RefreshCheck> {
   try {
     const redis = getRedis();
     const exists = await redis.exists(refreshKey(userId, jti));
@@ -59,10 +55,7 @@ export async function checkRefresh(
 }
 
 // Revoke a single refresh token (rotation consumes the old jti; logout).
-export async function revokeRefresh(
-  userId: number,
-  jti: string
-): Promise<void> {
+export async function revokeRefresh(userId: number, jti: string): Promise<void> {
   try {
     const redis = getRedis();
     await redis.del(refreshKey(userId, jti));
@@ -89,10 +82,7 @@ export async function revokeAllRefresh(userId: number): Promise<void> {
 
 // --- Optional access-token blacklist (cache-design.md §5.2) ---
 
-export async function blacklistAccess(
-  jti: string,
-  ttlSeconds: number
-): Promise<void> {
+export async function blacklistAccess(jti: string, ttlSeconds: number): Promise<void> {
   if (ttlSeconds <= 0) return;
   try {
     const redis = getRedis();

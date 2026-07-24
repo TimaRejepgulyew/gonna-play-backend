@@ -1,32 +1,28 @@
+import type { FastifyInstance } from "fastify";
 import { getPrisma } from "@/config/prisma.js";
+import type { PaginationQuery } from "@/types/pagination.js";
 import FieldRepository from "./field.repository.js";
 import {
-  CreateField,
-  FieldListFilters,
+  type CreateField,
+  type FieldListFilters,
   FieldService,
-  UpdateField,
+  type UpdateField,
 } from "./field.service.js";
-
-import type { FastifyInstance } from "fastify";
-import type { PaginationQuery } from "@/types/pagination.js";
 
 export class FieldController {
   private fieldService: FieldService;
 
-  constructor(
-    server: FastifyInstance
-  ) {
+  constructor(server: FastifyInstance) {
     const prisma = getPrisma();
     const fieldRepository = new FieldRepository(prisma);
     this.fieldService = new FieldService(fieldRepository, server.log);
   }
 
   getFieldList(req: { query: PaginationQuery & FieldListFilters }) {
-    const { page, limit, sort, order, locationId, format, surface, isIndoor } =
-      req.query;
+    const { page, limit, sort, order, locationId, format, surface, isIndoor } = req.query;
     return this.fieldService.getFieldList(
       { page, limit, sort, order },
-      { locationId, format, surface, isIndoor }
+      { locationId, format, surface, isIndoor },
     );
   }
 

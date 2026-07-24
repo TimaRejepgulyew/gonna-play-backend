@@ -1,22 +1,15 @@
-import { randomBytes, pbkdf2Sync, timingSafeEqual } from "node:crypto";
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 
 const SALT_LENGTH = 16;
 const HASH_ITERATIONS = 100_000;
 const HASH_ALGO = "sha256";
 const HASH_LENGTH = 64;
 
-export function hashPassword(
-  password: string,
-  salt?: string
-): { hash: string; salt: string } {
+export function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
   const usedSalt = salt || randomBytes(SALT_LENGTH).toString("hex");
-  const hash = pbkdf2Sync(
-    password,
-    usedSalt,
-    HASH_ITERATIONS,
-    HASH_LENGTH,
-    HASH_ALGO
-  ).toString("hex");
+  const hash = pbkdf2Sync(password, usedSalt, HASH_ITERATIONS, HASH_LENGTH, HASH_ALGO).toString(
+    "hex",
+  );
   return { hash, salt: usedSalt };
 }
 
@@ -29,7 +22,7 @@ export function hashToStorage(password: string): string {
 
 // Verifies a plaintext password against a stored `salt:hash` value.
 export function verifyPassword(password: string, stored: string): boolean {
-  if (!stored || !stored.includes(":")) {
+  if (!stored?.includes(":")) {
     return false;
   }
   const [salt, hash] = stored.split(":");

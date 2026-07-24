@@ -44,12 +44,10 @@ const testScript = (name, captures = [], asserts = []) => ({
   script: {
     type: "text/javascript",
     exec: [
-      `pm.test(${JSON.stringify(name + " → 2xx")}, function () {`,
+      `pm.test(${JSON.stringify(`${name} → 2xx`)}, function () {`,
       `  pm.expect(pm.response.code).to.be.within(200, 299);`,
       `});`,
-      ...(captures.length || asserts.length
-        ? ["var d = pm.response.json();"]
-        : []),
+      ...(captures.length || asserts.length ? ["var d = pm.response.json();"] : []),
       ...captures.map(([v, expr]) => `pm.collectionVariables.set(${JSON.stringify(v)}, ${expr});`),
       ...asserts.flatMap(([n, code]) => [
         `pm.test(${JSON.stringify(n)}, function () {`,
@@ -78,7 +76,7 @@ function makeItem(step) {
   // converter puts in, they do not pass TypeBox validation.
   item.request.url.query = [];
   item.request.url.host = ["{{baseUrl}}"];
-  item.request.url.raw = "{{baseUrl}}/" + item.request.url.path.join("/");
+  item.request.url.raw = `{{baseUrl}}/${item.request.url.path.join("/")}`;
 
   for (const v of item.request.url.variable ?? []) {
     if (step.vars && step.vars[v.key] !== undefined) v.value = step.vars[v.key];
@@ -198,7 +196,12 @@ const folders = [
     name: "3 · Пользователи",
     steps: [
       { key: "GET /api/user/list", name: "Список пользователей (админ)", auth: "adminToken" },
-      { key: "GET /api/user/{id}", name: "Пользователь по id", auth: "adminToken", vars: { id: "{{orgUserId}}" } },
+      {
+        key: "GET /api/user/{id}",
+        name: "Пользователь по id",
+        auth: "adminToken",
+        vars: { id: "{{orgUserId}}" },
+      },
       {
         key: "PUT /api/user/{id}",
         name: "Организатор правит свой профиль",
@@ -220,7 +223,12 @@ const folders = [
         captures: [["adminPlayerId", "d.id"]],
       },
       { key: "GET /api/player/list", name: "Список игроков", auth: "adminToken" },
-      { key: "GET /api/player/{id}", name: "Игрок по id", auth: "adminToken", vars: { id: "{{p1PlayerId}}" } },
+      {
+        key: "GET /api/player/{id}",
+        name: "Игрок по id",
+        auth: "adminToken",
+        vars: { id: "{{p1PlayerId}}" },
+      },
       {
         key: "PUT /api/player/{id}",
         name: "Организатор правит своего игрока",
@@ -250,7 +258,12 @@ const folders = [
         captures: [["locationId2", "d.id"]],
       },
       { key: "GET /api/location/list", name: "Список локаций (публичный)", auth: null },
-      { key: "GET /api/location/{id}", name: "Локация по id (публичный)", auth: null, vars: { id: "{{locationId}}" } },
+      {
+        key: "GET /api/location/{id}",
+        name: "Локация по id (публичный)",
+        auth: null,
+        vars: { id: "{{locationId}}" },
+      },
       {
         key: "PUT /api/location/{id}",
         name: "Обновление локации",
@@ -280,7 +293,12 @@ const folders = [
         captures: [["fieldId2", "d.id"]],
       },
       { key: "GET /api/field/list", name: "Список полей (публичный)", auth: null },
-      { key: "GET /api/field/{id}", name: "Поле по id (публичный)", auth: null, vars: { id: "{{fieldId}}" } },
+      {
+        key: "GET /api/field/{id}",
+        name: "Поле по id (публичный)",
+        auth: null,
+        vars: { id: "{{fieldId}}" },
+      },
       {
         key: "PUT /api/field/{id}",
         name: "Обновление поля",
@@ -298,7 +316,9 @@ const folders = [
         name: "Организатор создаёт черновик матча (minPlayers=2, maxPlayers=2)",
         auth: "orgToken",
         code: 201,
-        pre: [`pm.collectionVariables.set("futureDate", new Date(Date.now() + 7 * 864e5).toISOString());`],
+        pre: [
+          `pm.collectionVariables.set("futureDate", new Date(Date.now() + 7 * 864e5).toISOString());`,
+        ],
         body: `{ "fieldId": {{fieldId}}, "title": "Smoke Match {{runId}}", "startsAt": "{{futureDate}}", "format": "SEVEN", "minPlayers": 2, "maxPlayers": 2, "price": 50, "durationMin": 90 }`,
         captures: [["matchId", "d.id"]],
         asserts: [["создан в статусе DRAFT", `pm.expect(d.status).to.equal("DRAFT");`]],
@@ -311,14 +331,21 @@ const folders = [
         asserts: [["матч открыт (OPEN)", `pm.expect(d.status).to.equal("OPEN");`]],
       },
       { key: "GET /api/match/list", name: "Список матчей", auth: "orgToken" },
-      { key: "GET /api/match/{id}", name: "Карточка матча", auth: "orgToken", vars: { id: "{{matchId}}" } },
+      {
+        key: "GET /api/match/{id}",
+        name: "Карточка матча",
+        auth: "orgToken",
+        vars: { id: "{{matchId}}" },
+      },
       {
         key: "POST /api/match/{id}/join",
         name: "Организатор записывается (REGISTERED)",
         auth: "orgToken",
         vars: { id: "{{matchId}}" },
         body: `{ "position": "MIDFIELDER" }`,
-        asserts: [["организатор в составе (REGISTERED)", `pm.expect(d.status).to.equal("REGISTERED");`]],
+        asserts: [
+          ["организатор в составе (REGISTERED)", `pm.expect(d.status).to.equal("REGISTERED");`],
+        ],
       },
       {
         key: "POST /api/match/{id}/join",
@@ -326,7 +353,9 @@ const folders = [
         auth: "p1Token",
         vars: { id: "{{matchId}}" },
         body: `{ "position": "FORWARD" }`,
-        asserts: [["игрок 1 в составе (REGISTERED)", `pm.expect(d.status).to.equal("REGISTERED");`]],
+        asserts: [
+          ["игрок 1 в составе (REGISTERED)", `pm.expect(d.status).to.equal("REGISTERED");`],
+        ],
       },
       {
         key: "POST /api/match/{id}/join",
@@ -334,7 +363,9 @@ const folders = [
         auth: "p2Token",
         vars: { id: "{{matchId}}" },
         body: `{ "position": "GOALKEEPER" }`,
-        asserts: [["игрок 2 в очереди (WAITLISTED)", `pm.expect(d.status).to.equal("WAITLISTED");`]],
+        asserts: [
+          ["игрок 2 в очереди (WAITLISTED)", `pm.expect(d.status).to.equal("WAITLISTED");`],
+        ],
       },
       {
         key: "DELETE /api/match/{id}/leave",
@@ -397,8 +428,18 @@ const folders = [
         body: `{ "matchId": {{matchId}}, "ratedId": {{p2PlayerId}}, "score": 5, "comment": "Отличная игра" }`,
         captures: [["ratingId", "d.id"]],
       },
-      { key: "GET /api/rating/player/{playerId}", name: "Рейтинг игрока (публичный)", auth: null, vars: { playerId: "{{p2PlayerId}}" } },
-      { key: "GET /api/rating/match/{matchId}", name: "Оценки матча", auth: "orgToken", vars: { matchId: "{{matchId}}" } },
+      {
+        key: "GET /api/rating/player/{playerId}",
+        name: "Рейтинг игрока (публичный)",
+        auth: null,
+        vars: { playerId: "{{p2PlayerId}}" },
+      },
+      {
+        key: "GET /api/rating/match/{matchId}",
+        name: "Оценки матча",
+        auth: "orgToken",
+        vars: { matchId: "{{matchId}}" },
+      },
     ],
   },
   {
@@ -425,13 +466,48 @@ const folders = [
         vars: { id: "{{matchId2}}" },
         asserts: [["матч отменён (CANCELLED)", `pm.expect(d.status).to.equal("CANCELLED");`]],
       },
-      { key: "DELETE /api/rating/{id}", name: "Автор удаляет оценку", auth: "orgToken", vars: { id: "{{ratingId}}" } },
-      { key: "DELETE /api/field/{id}", name: "Удаление временного поля", auth: "adminToken", vars: { id: "{{fieldId2}}" } },
-      { key: "DELETE /api/location/{id}", name: "Удаление временной локации", auth: "adminToken", vars: { id: "{{locationId2}}" } },
-      { key: "DELETE /api/player/{id}", name: "Удаление игрока администратора", auth: "adminToken", vars: { id: "{{adminPlayerId}}" } },
-      { key: "DELETE /api/user/{id}", name: "Удаление организатора", auth: "adminToken", vars: { id: "{{orgUserId}}" } },
-      { key: "DELETE /api/user/{id}", name: "Удаление второго игрока", auth: "adminToken", vars: { id: "{{p2UserId}}" } },
-      { key: "DELETE /api/role/{id}", name: "Удаление роли", auth: "adminToken", vars: { id: "{{roleId}}" } },
+      {
+        key: "DELETE /api/rating/{id}",
+        name: "Автор удаляет оценку",
+        auth: "orgToken",
+        vars: { id: "{{ratingId}}" },
+      },
+      {
+        key: "DELETE /api/field/{id}",
+        name: "Удаление временного поля",
+        auth: "adminToken",
+        vars: { id: "{{fieldId2}}" },
+      },
+      {
+        key: "DELETE /api/location/{id}",
+        name: "Удаление временной локации",
+        auth: "adminToken",
+        vars: { id: "{{locationId2}}" },
+      },
+      {
+        key: "DELETE /api/player/{id}",
+        name: "Удаление игрока администратора",
+        auth: "adminToken",
+        vars: { id: "{{adminPlayerId}}" },
+      },
+      {
+        key: "DELETE /api/user/{id}",
+        name: "Удаление организатора",
+        auth: "adminToken",
+        vars: { id: "{{orgUserId}}" },
+      },
+      {
+        key: "DELETE /api/user/{id}",
+        name: "Удаление второго игрока",
+        auth: "adminToken",
+        vars: { id: "{{p2UserId}}" },
+      },
+      {
+        key: "DELETE /api/role/{id}",
+        name: "Удаление роли",
+        auth: "adminToken",
+        vars: { id: "{{roleId}}" },
+      },
       { key: "POST /api/auth/logout", name: "Выход администратора", auth: "adminToken" },
     ],
   },

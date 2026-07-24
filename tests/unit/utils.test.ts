@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { isErrorShape } from "@/utils/cache.js";
 import { buildMeta, resolvePagination } from "@/types/pagination.js";
+import { isErrorShape } from "@/utils/cache.js";
 
 // Смоук резолва: сам факт импорта `@/utils/cache.js` доказывает, что алиас `@/`
 // и разрешение `.js` → `.ts` работают — на этом держится вся конфигурация.
@@ -19,11 +18,7 @@ describe("isErrorShape", () => {
     ["canonical error shape", { code: 404, message: "not found" }, true],
     // Ловушка: третий ключ выводит объект из-под предиката, поэтому
     // preSerialization не подменит статус и доменная ошибка уедет как HTTP 200.
-    [
-      "error shape with a third key",
-      { code: 404, message: "not found", data: null },
-      false,
-    ],
+    ["error shape with a third key", { code: 404, message: "not found", data: null }, false],
     ["null", null, false],
     ["a string", "not found", false],
     ["code as a string", { code: "404", message: "not found" }, false],
@@ -43,11 +38,7 @@ describe("resolvePagination", () => {
   });
 
   it("silently falls back to the default sort on an unknown field", () => {
-    const result = resolvePagination(
-      { sort: "dropTableUsers" },
-      allowed,
-      "createdAt"
-    );
+    const result = resolvePagination({ sort: "dropTableUsers" }, allowed, "createdAt");
     expect(result.orderBy).toEqual({ createdAt: "desc" });
   });
 });

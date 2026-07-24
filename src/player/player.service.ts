@@ -1,27 +1,23 @@
+import type { FastifyBaseLogger } from "fastify";
 import { errorCodes } from "fastify";
+import type { PLAYER_STATUS } from "@/constants/enums.js";
 import { errorCodes as userErrorCodes } from "@/constants/index.js";
-import { User } from "@/user/user.model.js";
-import UserRepository from "@/user/user.repository.js";
-import { PLAYER_STATUS } from "@/constants/enums.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
+import type { ErrorResponse } from "@/types/prisma.js";
+import type { CreateUser, UpdateUser } from "@/user/types.js";
+import type { User } from "@/user/user.model.js";
+import type UserRepository from "@/user/user.repository.js";
 import {
-  CACHE_TTL,
-  cacheKeys,
-  cacheDel,
   bumpVersion,
+  CACHE_TTL,
+  cacheDel,
+  cacheKeys,
   getOrSet,
   getOrSetList,
 } from "@/utils/cache.js";
-import { PLAYER_LEVEL, PLAYER_POSITION } from "./constant.js";
+import type { PLAYER_LEVEL, PLAYER_POSITION } from "./constant.js";
 import Player from "./player.model.js";
-import PlayerRepository from "./player.repository.js";
-
-import type { ErrorResponse } from "@/types/prisma.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
-import type { CreateUser, UpdateUser } from "@/user/types.js";
-import type { FastifyBaseLogger } from "fastify";
+import type PlayerRepository from "./player.repository.js";
 
 export interface CreatePlayer
   extends Omit<Player, "id" | "createdAt" | "updatedAt" | "user" | "rating"> {
@@ -29,9 +25,7 @@ export interface CreatePlayer
 }
 
 export interface UpdatePlayer
-  extends Partial<
-    Omit<Player, "id" | "createdAt" | "updatedAt" | "user" | "rating">
-  > {
+  extends Partial<Omit<Player, "id" | "createdAt" | "updatedAt" | "user" | "rating">> {
   id: number;
   user?: Omit<UpdateUser, "id">;
 }
@@ -46,7 +40,7 @@ export interface PlayerListFilters {
 export interface IPlayerRepository {
   getPlayerList(
     pagination?: PaginationQuery,
-    filters?: PlayerListFilters
+    filters?: PlayerListFilters,
   ): Promise<PaginatedResult<Player>>;
   createPlayer(player: CreatePlayer): Promise<Player | null>;
   getPlayer(id: number): Promise<Player | null>;
@@ -58,19 +52,16 @@ export class PlayerService {
   constructor(
     private playerRepository: PlayerRepository,
     private userRepository: UserRepository,
-    private logger: FastifyBaseLogger
+    private logger: FastifyBaseLogger,
   ) {}
 
   getPlayerList(
     pagination?: PaginationQuery,
-    filters?: PlayerListFilters
+    filters?: PlayerListFilters,
   ): Promise<PaginatedResult<Player>> {
     // Cache class `player:list` (versioned).
-    return getOrSetList(
-      "player:list",
-      { ...pagination, ...filters },
-      CACHE_TTL.PLAYER_LIST,
-      () => this.playerRepository.getPlayerList(pagination, filters)
+    return getOrSetList("player:list", { ...pagination, ...filters }, CACHE_TTL.PLAYER_LIST, () =>
+      this.playerRepository.getPlayerList(pagination, filters),
     );
   }
 
@@ -78,14 +69,10 @@ export class PlayerService {
     let user: User | null = null;
     try {
       if (!player.userId && player.user) {
-        const hasDuplicateEmail = await this.userRepository.getUserByEmail(
-          player.user.email
-        );
+        const hasDuplicateEmail = await this.userRepository.getUserByEmail(player.user.email);
 
         if (hasDuplicateEmail) {
-          this.logger.error(
-            `User with email ${player.user.email} already exists`
-          );
+          this.logger.error(`User with email ${player.user.email} already exists`);
           return userErrorCodes.USER_EMAIL_DUPLICATED;
         }
 
@@ -114,7 +101,7 @@ export class PlayerService {
 
     try {
       const createdPlayer = await this.playerRepository.createPlayer(
-        Object.assign(player, { userId: user.id, user })
+        Object.assign(player, { userId: user.id, user }),
       );
 
       await bumpVersion("player:list");
@@ -127,10 +114,8 @@ export class PlayerService {
 
   async getPlayer(id: number): Promise<Player> {
     // Cache class `player:detail` (single key, includes rating aggregate).
-    const player = await getOrSet(
-      cacheKeys.playerDetail(id),
-      CACHE_TTL.PLAYER_DETAIL,
-      () => this.playerRepository.getPlayer(id)
+    const player = await getOrSet(cacheKeys.playerDetail(id), CACHE_TTL.PLAYER_DETAIL, () =>
+      this.playerRepository.getPlayer(id),
     );
 
     if (!player) {
@@ -157,19 +142,13 @@ export class PlayerService {
       throw errorCodes.FST_ERR_NOT_FOUND();
     }
 
-    await Promise.all([
-      bumpVersion("player:list"),
-      cacheDel(cacheKeys.playerDetail(player.id)),
-    ]);
+    await Promise.all([bumpVersion("player:list"), cacheDel(cacheKeys.playerDetail(player.id))]);
     return new Player(updatedPlayer);
   }
 
   async deletePlayer(id: number): Promise<number | null> {
     const deleted = await this.playerRepository.deletePlayer(id);
-    await Promise.all([
-      bumpVersion("player:list"),
-      cacheDel(cacheKeys.playerDetail(id)),
-    ]);
+    await Promise.all([bumpVersion("player:list"), cacheDel(cacheKeys.playerDetail(id))]);
     return deleted;
   }
 }

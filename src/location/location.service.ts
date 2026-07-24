@@ -1,23 +1,18 @@
 import { Prisma } from "@prisma/client";
-
+import type { FastifyBaseLogger } from "fastify";
+import type { SURFACE_TYPE } from "@/constants/enums.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
+import type { ErrorResponse } from "@/types/prisma.js";
 import {
-  CACHE_TTL,
-  cacheKeys,
-  cacheDel,
   bumpVersion,
+  CACHE_TTL,
+  cacheDel,
+  cacheKeys,
   getOrSet,
   getOrSetList,
 } from "@/utils/cache.js";
-import Location from "./location.model.js";
-
-import type { FastifyBaseLogger } from "fastify";
-import type { ErrorResponse } from "@/types/prisma.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
-import type { SURFACE_TYPE } from "@/constants/enums.js";
+import type Location from "./location.model.js";
 
 export interface CreateLocation {
   name: string;
@@ -42,7 +37,7 @@ export interface LocationListFilters {
 export interface ILocationRepository {
   getLocationList(
     pagination?: PaginationQuery,
-    filters?: LocationListFilters
+    filters?: LocationListFilters,
   ): Promise<PaginatedResult<Location>>;
   getLocation(id: number): Promise<Location | null>;
   createLocation(data: CreateLocation): Promise<Location>;
@@ -53,28 +48,26 @@ export interface ILocationRepository {
 export class LocationService {
   constructor(
     private locationRepository: ILocationRepository,
-    private logger: FastifyBaseLogger
+    private logger: FastifyBaseLogger,
   ) {}
 
   getLocationList(
     pagination?: PaginationQuery,
-    filters?: LocationListFilters
+    filters?: LocationListFilters,
   ): Promise<PaginatedResult<Location>> {
     // Cache class `location:list` (versioned).
     return getOrSetList(
       "location:list",
       { ...pagination, ...filters },
       CACHE_TTL.LOCATION_LIST,
-      () => this.locationRepository.getLocationList(pagination, filters)
+      () => this.locationRepository.getLocationList(pagination, filters),
     );
   }
 
   async getLocation(id: number): Promise<Location | ErrorResponse> {
     // Cache class `location:detail` (single key, includes fields).
-    const location = await getOrSet(
-      cacheKeys.locationDetail(id),
-      CACHE_TTL.LOCATION_DETAIL,
-      () => this.locationRepository.getLocation(id)
+    const location = await getOrSet(cacheKeys.locationDetail(id), CACHE_TTL.LOCATION_DETAIL, () =>
+      this.locationRepository.getLocation(id),
     );
     if (!location) {
       return appErrorCodes.LOCATION_NOT_FOUND;
@@ -88,10 +81,7 @@ export class LocationService {
     return created;
   }
 
-  async updateLocation(
-    id: number,
-    data: UpdateLocation
-  ): Promise<Location | ErrorResponse> {
+  async updateLocation(id: number, data: UpdateLocation): Promise<Location | ErrorResponse> {
     const existing = await this.locationRepository.getLocation(id);
     if (!existing) {
       return appErrorCodes.LOCATION_NOT_FOUND;
@@ -100,10 +90,7 @@ export class LocationService {
     if (!updated) {
       return appErrorCodes.LOCATION_NOT_FOUND;
     }
-    await Promise.all([
-      bumpVersion("location:list"),
-      cacheDel(cacheKeys.locationDetail(id)),
-    ]);
+    await Promise.all([bumpVersion("location:list"), cacheDel(cacheKeys.locationDetail(id))]);
     return updated;
   }
 
@@ -114,10 +101,7 @@ export class LocationService {
     }
     try {
       await this.locationRepository.deleteLocation(id);
-      await Promise.all([
-        bumpVersion("location:list"),
-        cacheDel(cacheKeys.locationDetail(id)),
-      ]);
+      await Promise.all([bumpVersion("location:list"), cacheDel(cacheKeys.locationDetail(id))]);
       return { status: "success" };
     } catch (error) {
       // Cascade Location -> Field is blocked by Field -> Match (Restrict).

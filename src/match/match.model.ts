@@ -78,7 +78,7 @@ export const updateMatchSchema = Type.Partial(
   Type.Composite([
     Type.Omit(createMatchSchema, ["fieldId", "format"]),
     Type.Object({ status: Type.Enum(MATCH_STATUS) }),
-  ])
+  ]),
 );
 
 export const matchListQuerySchema = Type.Composite([

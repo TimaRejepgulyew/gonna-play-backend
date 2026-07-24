@@ -42,9 +42,7 @@ export const createFieldSchema = Type.Object({
   isIndoor: Type.Optional(Type.Boolean()),
 });
 
-export const updateFieldSchema = Type.Partial(
-  Type.Omit(createFieldSchema, ["locationId"])
-);
+export const updateFieldSchema = Type.Partial(Type.Omit(createFieldSchema, ["locationId"]));
 
 export const fieldListQuerySchema = Type.Composite([
   paginationQuerySchema,

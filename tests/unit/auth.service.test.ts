@@ -1,14 +1,12 @@
+import type { FastifyBaseLogger } from "fastify";
 import { beforeEach, describe, expect, it } from "vitest";
-
-import { AuthService } from "@/auth/auth.service.js";
-import type { TokenSigner } from "@/auth/auth.service.js";
 import type AuthRepository from "@/auth/auth.repository.js";
-import type UserRepository from "@/user/user.repository.js";
-import type PlayerRepository from "@/player/player.repository.js";
+import type { TokenSigner } from "@/auth/auth.service.js";
+import { AuthService } from "@/auth/auth.service.js";
 import { hashToStorage } from "@/auth/password.js";
 import { errorCodes } from "@/constants/index.js";
-
-import type { FastifyBaseLogger } from "fastify";
+import type PlayerRepository from "@/player/player.repository.js";
+import type UserRepository from "@/user/user.repository.js";
 
 import { createFakeAuthRepository } from "./doubles/repositories.js";
 
@@ -45,7 +43,7 @@ describe("AuthService.login", () => {
         signed.push(payload);
         return `token-${signed.length}`;
       },
-      verify<T>() {
+      verify() {
         throw new Error("verify() is not part of the login path");
       },
     };
@@ -55,7 +53,7 @@ describe("AuthService.login", () => {
       {} as UserRepository,
       {} as PlayerRepository,
       jwt,
-      silentLogger
+      silentLogger,
     );
     authRepository.users.seed({
       id: 7,

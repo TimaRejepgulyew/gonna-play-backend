@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
-import Role from "./role.model.js";
+import type Role from "./role.model.js";
 
 import type { IRoleRepository } from "./role.service.js";
 
@@ -20,9 +20,7 @@ export default class RoleRepository implements IRoleRepository {
   }
 
   async findRoleById(id: number): Promise<Role | null> {
-    return this.prisma.role.findUnique({ where: { id } }) as unknown as Promise<
-      Role | null
-    >;
+    return this.prisma.role.findUnique({ where: { id } }) as unknown as Promise<Role | null>;
   }
 
   async deleteRole(id: number): Promise<void> {

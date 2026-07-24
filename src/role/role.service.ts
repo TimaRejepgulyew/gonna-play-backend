@@ -1,10 +1,8 @@
 import { Prisma } from "@prisma/client";
-
-import { errorCodes as appErrorCodes } from "@/constants/index.js";
-import Role from "./role.model.js";
-
 import type { FastifyBaseLogger } from "fastify";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { ErrorResponse } from "@/types/prisma.js";
+import type Role from "./role.model.js";
 
 export interface AssignRoleInput {
   userId: number;
@@ -24,7 +22,7 @@ export interface IRoleRepository {
 export class RoleService {
   constructor(
     private roleRepository: IRoleRepository,
-    private logger: FastifyBaseLogger
+    private logger: FastifyBaseLogger,
   ) {}
 
   listRoles(): Promise<Role[]> {
@@ -35,10 +33,7 @@ export class RoleService {
     try {
       return await this.roleRepository.createRole(name);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         return appErrorCodes.ROLE_NAME_DUPLICATED;
       }
       this.logger.error(error);
@@ -55,9 +50,7 @@ export class RoleService {
     return { status: "success" };
   }
 
-  async assignRole(
-    input: AssignRoleInput
-  ): Promise<{ status: string } | ErrorResponse> {
+  async assignRole(input: AssignRoleInput): Promise<{ status: string } | ErrorResponse> {
     const [role, userExists] = await Promise.all([
       this.roleRepository.findRoleById(input.roleId),
       this.roleRepository.userExists(input.userId),
@@ -72,10 +65,7 @@ export class RoleService {
       await this.roleRepository.assignRole(input.userId, input.roleId);
       return { status: "success" };
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         return appErrorCodes.ROLE_ALREADY_ASSIGNED;
       }
       this.logger.error(error);
@@ -83,13 +73,8 @@ export class RoleService {
     }
   }
 
-  async revokeRole(
-    input: AssignRoleInput
-  ): Promise<{ status: string } | ErrorResponse> {
-    const removed = await this.roleRepository.revokeRole(
-      input.userId,
-      input.roleId
-    );
+  async revokeRole(input: AssignRoleInput): Promise<{ status: string } | ErrorResponse> {
+    const removed = await this.roleRepository.revokeRole(input.userId, input.roleId);
     if (!removed) {
       return appErrorCodes.ROLE_NOT_FOUND;
     }

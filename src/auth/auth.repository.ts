@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 export interface UserWithSecret {
   id: number;
@@ -18,9 +18,7 @@ export default class AuthRepository implements IAuthRepository {
 
   // Unlike UserRepository.getUserByEmail (which drops the password), this
   // returns the stored `salt:hash` so login can verify the credentials.
-  async getUserByEmailWithSecret(
-    email: string
-  ): Promise<UserWithSecret | null> {
+  async getUserByEmailWithSecret(email: string): Promise<UserWithSecret | null> {
     return this.prisma.user.findUnique({
       where: { email },
       select: { id: true, email: true, name: true, password: true },

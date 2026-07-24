@@ -1,10 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 import { MATCH_STATUS, MATCH_VISIBILITY } from "@/constants/enums.js";
-import { PLAYER_LEVEL, PLAYER_LEVEL_ORDER } from "@/player/constant.js";
+import { type PLAYER_LEVEL, PLAYER_LEVEL_ORDER } from "@/player/constant.js";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
-import { Match } from "./match.model.js";
-import { SEATED_STATUSES } from "./match.service.js";
+import type { Match } from "./match.model.js";
 
 import type {
   CreateMatchData,
@@ -13,10 +13,7 @@ import type {
   MatchRecord,
   UpdateMatchData,
 } from "./match.service.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
+import { SEATED_STATUSES } from "./match.service.js";
 
 const MATCH_SORT_FIELDS = ["startsAt", "createdAt", "price", "maxPlayers"];
 
@@ -37,13 +34,13 @@ export default class MatchRepository implements IMatchRepository {
 
   async listMatches(
     pagination: PaginationQuery = {},
-    filters: MatchListFilters = {}
+    filters: MatchListFilters = {},
   ): Promise<PaginatedResult<Match>> {
     const { skip, take, page, limit, orderBy } = resolvePagination(
       pagination,
       MATCH_SORT_FIELDS,
       "startsAt",
-      "asc"
+      "asc",
     );
 
     const startsAt: { gte?: Date; lte?: Date } = {};
@@ -53,24 +50,16 @@ export default class MatchRepository implements IMatchRepository {
     // Base list is always public and never DRAFT. A status filter is added
     // alongside (not replacing) the DRAFT exclusion, so no query can surface a
     // DRAFT match — a `status=DRAFT` filter yields a contradiction => empty.
-    const and: Record<string, unknown>[] = [
-      { status: { not: MATCH_STATUS.DRAFT } },
-    ];
+    const and: Record<string, unknown>[] = [{ status: { not: MATCH_STATUS.DRAFT } }];
     if (filters.status) and.push({ status: filters.status });
     if (filters.level) {
       and.push({
         AND: [
           {
-            OR: [
-              { skillMin: null },
-              { skillMin: { in: levelsAtOrBelow(filters.level) } },
-            ],
+            OR: [{ skillMin: null }, { skillMin: { in: levelsAtOrBelow(filters.level) } }],
           },
           {
-            OR: [
-              { skillMax: null },
-              { skillMax: { in: levelsAtOrAbove(filters.level) } },
-            ],
+            OR: [{ skillMax: null }, { skillMax: { in: levelsAtOrAbove(filters.level) } }],
           },
         ],
       });
@@ -82,9 +71,7 @@ export default class MatchRepository implements IMatchRepository {
       ...(filters.fieldId ? { fieldId: filters.fieldId } : {}),
       ...(filters.organizerId ? { organizerId: filters.organizerId } : {}),
       ...(startsAt.gte || startsAt.lte ? { startsAt } : {}),
-      ...(filters.city
-        ? { field: { location: { city: filters.city } } }
-        : {}),
+      ...(filters.city ? { field: { location: { city: filters.city } } } : {}),
       AND: and,
     };
 
@@ -154,29 +141,20 @@ export default class MatchRepository implements IMatchRepository {
         minPlayers: data.minPlayers,
         maxPlayers: data.maxPlayers,
         status: data.status,
-        ...(data.durationMin !== undefined
-          ? { durationMin: data.durationMin }
-          : {}),
+        ...(data.durationMin !== undefined ? { durationMin: data.durationMin } : {}),
         ...(data.price !== undefined ? { price: data.price } : {}),
         ...(data.currency !== undefined ? { currency: data.currency } : {}),
-        ...(data.visibility !== undefined
-          ? { visibility: data.visibility }
-          : {}),
+        ...(data.visibility !== undefined ? { visibility: data.visibility } : {}),
         ...(data.skillMin !== undefined ? { skillMin: data.skillMin } : {}),
         ...(data.skillMax !== undefined ? { skillMax: data.skillMax } : {}),
-        ...(data.description !== undefined
-          ? { description: data.description }
-          : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
       },
       include: { field: { include: { location: true } } },
     });
     return created as unknown as Match;
   }
 
-  async updateMatch(
-    id: number,
-    data: UpdateMatchData
-  ): Promise<Match | null> {
+  async updateMatch(id: number, data: UpdateMatchData): Promise<Match | null> {
     const updated = await this.prisma.match.update({
       where: { id },
       data,

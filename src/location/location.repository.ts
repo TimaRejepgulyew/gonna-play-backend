@@ -1,18 +1,13 @@
-import { PrismaClient } from "@prisma/client";
-
+import type { PrismaClient } from "@prisma/client";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
-import Location from "./location.model.js";
-
+import type Location from "./location.model.js";
 import type {
   CreateLocation,
   ILocationRepository,
   LocationListFilters,
   UpdateLocation,
 } from "./location.service.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
 
 const LOCATION_SORT_FIELDS = ["createdAt", "updatedAt", "name", "city"];
 
@@ -21,12 +16,12 @@ export default class LocationRepository implements ILocationRepository {
 
   async getLocationList(
     pagination: PaginationQuery = {},
-    filters: LocationListFilters = {}
+    filters: LocationListFilters = {},
   ): Promise<PaginatedResult<Location>> {
     const { skip, take, page, limit, orderBy } = resolvePagination(
       pagination,
       LOCATION_SORT_FIELDS,
-      "createdAt"
+      "createdAt",
     );
 
     const where = {
@@ -66,10 +61,7 @@ export default class LocationRepository implements ILocationRepository {
     return created as unknown as Location;
   }
 
-  async updateLocation(
-    id: number,
-    data: UpdateLocation
-  ): Promise<Location | null> {
+  async updateLocation(id: number, data: UpdateLocation): Promise<Location | null> {
     const updated = await this.prisma.location.update({ where: { id }, data });
     return updated as unknown as Location | null;
   }

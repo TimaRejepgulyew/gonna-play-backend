@@ -1,18 +1,13 @@
-import { PrismaClient } from "@prisma/client";
-
+import type { PrismaClient } from "@prisma/client";
+import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
-import Player from "./player.model.js";
-
+import type Player from "./player.model.js";
 import type {
-  IPlayerRepository,
   CreatePlayer,
-  UpdatePlayer,
+  IPlayerRepository,
   PlayerListFilters,
+  UpdatePlayer,
 } from "./player.service.js";
-import type {
-  PaginatedResult,
-  PaginationQuery,
-} from "@/types/pagination.js";
 
 const PLAYER_SORT_FIELDS = ["createdAt", "updatedAt", "name", "level"];
 
@@ -21,12 +16,12 @@ export default class PlayerRepository implements IPlayerRepository {
 
   async getPlayerList(
     pagination: PaginationQuery = {},
-    filters: PlayerListFilters = {}
+    filters: PlayerListFilters = {},
   ): Promise<PaginatedResult<Player>> {
     const { skip, take, page, limit, orderBy } = resolvePagination(
       pagination,
       PLAYER_SORT_FIELDS,
-      "createdAt"
+      "createdAt",
     );
 
     const where = {

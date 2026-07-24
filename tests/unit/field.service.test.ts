@@ -1,15 +1,9 @@
+import type { FastifyBaseLogger } from "fastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
+import { MATCH_FORMAT } from "@/constants/enums.js";
 import { errorCodes } from "@/constants/index.js";
 import { FieldService } from "@/field/field.service.js";
-import { MATCH_FORMAT } from "@/constants/enums.js";
-
-import {
-  createFakeFieldRepository,
-  type FakeFieldRepository,
-} from "./doubles/repositories.js";
-
-import type { FastifyBaseLogger } from "fastify";
+import { createFakeFieldRepository, type FakeFieldRepository } from "./doubles/repositories.js";
 
 const logger = {
   error: vi.fn(),

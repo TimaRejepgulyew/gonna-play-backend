@@ -13,9 +13,9 @@ beforeEach(async () => {
   await resetDatabase();
 });
 
+export type { Actor, CreateActorOptions } from "../helpers/actors.js";
+export { createActor, relogin } from "../helpers/actors.js";
 // Единая точка импорта хелперов Фазы 2 для интеграционных тестов.
 // fixtures.ts появится в Фазе 6 и будет реэкспортирован здесь же.
 export { createTestApp, destroyTestApp } from "../helpers/app.js";
 export { resetDatabase } from "../helpers/db.js";
-export { createActor, relogin } from "../helpers/actors.js";
-export type { Actor, CreateActorOptions } from "../helpers/actors.js";

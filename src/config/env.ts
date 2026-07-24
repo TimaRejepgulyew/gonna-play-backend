@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 
-config();
+config({ quiet: true });
 
 const toInt = (value: string | undefined, fallback: number): number => {
   const parsed = parseInt(value ?? "", 10);
@@ -17,9 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET || DEV_JWT_SECRET;
 // Fail-fast: never boot production on the baked-in dev secret. Dev/test keep
 // the fallback so local startup is unchanged.
 if (NODE_ENV === "production" && JWT_SECRET === DEV_JWT_SECRET) {
-  throw new Error(
-    "JWT_SECRET must be set to a non-default value when NODE_ENV=production"
-  );
+  throw new Error("JWT_SECRET must be set to a non-default value when NODE_ENV=production");
 }
 
 export default {

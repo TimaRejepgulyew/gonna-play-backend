@@ -1,0 +1,29 @@
+language js
+
+pattern loop_with_body($body) {
+    or {
+        JsForStatement(body = $body),
+        JsForOfStatement(body = $body),
+        JsForInStatement(body = $body),
+        JsWhileStatement(body = $body),
+        JsDoWhileStatement(body = $body)
+    }
+}
+
+pattern function_boundary() {
+    or {
+        JsArrowFunctionExpression(),
+        JsFunctionExpression(),
+        JsFunctionDeclaration()
+    }
+}
+
+$outer where {
+    $outer <: loop_with_body($body),
+    $body <: contains loop_with_body($_) until function_boundary(),
+    register_diagnostic(
+        span = $outer,
+        message = "Вложенный цикл: тело этого цикла содержит ещё один цикл. Вынеси внутренний обход в именованную функцию или замени на индекс/Map.",
+        severity = "error"
+    )
+}

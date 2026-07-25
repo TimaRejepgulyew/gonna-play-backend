@@ -20,7 +20,9 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "npx prisma migrate deploy && npm run test:coverage"
+    # Линт первым: он не требует базы, поэтому нарушение всплывает до миграций
+    # и до долгого прогона тестов с покрытием.
+    command: sh -c "npm run lint && npx prisma migrate deploy && npm run test:coverage"
 
   db:
     image: postgres:18

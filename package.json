@@ -8,7 +8,9 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
     "dev": "npx tsx watch src/index.ts",
-    "lint": "biome ci .",
+    "lint": "biome ci . && node scripts/check-comments.mjs",
+    "lint:comments": "node scripts/check-comments.mjs",
+    "lint:report": "node scripts/check-comments.mjs --report",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "test": "vitest run",
@@ -32,7 +34,8 @@
     "postman:collection": "openapi2postmanv2 -s postman/specs/openapi.json -o postman/collections/gonna-play.postman_collection.json -p -O folderStrategy=Paths,requestParametersResolution=Example,optimizeConversion=false",
     "postman:generate": "npm run postman:spec && npm run postman:collection && npm run postman:smoke",
     "postman:smoke": "node scripts/postman-smoke.mjs",
-    "postman:test": "newman run postman/collections/gonna-play.smoke.postman_collection.json -e postman/environments/local.postman_environment.json"
+    "postman:test": "newman run postman/collections/gonna-play.smoke.postman_collection.json -e postman/environments/local.postman_environment.json",
+    "prepare": "[ -e .git ] && git config core.hooksPath .githooks || exit 0"
   },
   "repository": {
     "type": "git",

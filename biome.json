@@ -12,9 +12,17 @@
       "!postman/specs",
       "!prisma/migrations",
       "!docs",
-      "!.claude"
+      "!.claude",
+      "!tests/unit/fixtures",
+      "!biome/plugins"
     ]
   },
+  "plugins": [
+    {
+      "path": "./biome/plugins/no-nested-loops.grit",
+      "includes": ["**/src/**/*.ts"]
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -46,9 +54,33 @@
           "options": { "maxLines": 80, "skipBlankLines": true }
         }
       },
+      "correctness": {
+        "useImportExtensions": {
+          "level": "error",
+          "options": { "extensionMappings": { "ts": "js" } }
+        }
+      },
+      "nursery": {
+        "useImportsFirst": "error"
+      },
       "style": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": { "maxLines": 200, "skipBlankLines": true }
+        },
         "noMagicNumbers": "error",
         "noParameterAssign": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "fastify": {
+                "importNames": ["errorCodes"],
+                "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+              }
+            }
+          }
+        },
         "useNamingConvention": {
           "level": "error",
           "options": {
@@ -64,16 +96,287 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "error"
+        "noConsole": "error",
+        "noImportCycles": "warn"
       }
     }
   },
   "overrides": [
     {
+      "includes": ["src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  },
+                  {
+                    "group": ["@/generated/**"],
+                    "message": "Prisma-клиент берётся через getPrisma() из @/config/prisma.js (docs/wiki/conventions.md:49)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/*/*.model.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  },
+                  {
+                    "group": ["@/generated/**"],
+                    "message": "Prisma-клиент берётся через getPrisma() из @/config/prisma.js (docs/wiki/conventions.md:49)."
+                  },
+                  {
+                    "group": [
+                      "./*.controller.js",
+                      "./*.routes.js",
+                      "./*.service.js",
+                      "./*.repository.js",
+                      "@/*/*.controller.js",
+                      "@/*/*.routes.js",
+                      "@/*/*.service.js",
+                      "@/*/*.repository.js"
+                    ],
+                    "message": "Модель описывает форму данных и не знает об исполняющих слоях: поток идёт routes → controller → service → repository (docs/wiki/architecture.md:9)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/*/*.repository.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  },
+                  {
+                    "group": ["@/generated/**"],
+                    "message": "Prisma-клиент берётся через getPrisma() из @/config/prisma.js (docs/wiki/conventions.md:49)."
+                  },
+                  {
+                    "group": [
+                      "./*.controller.js",
+                      "./*.routes.js",
+                      "@/*/*.controller.js",
+                      "@/*/*.routes.js"
+                    ],
+                    "message": "Репозиторий не знает о транспортном слое: поток идёт routes → controller → service → repository (docs/wiki/architecture.md:9)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/*/*.service.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  },
+                  {
+                    "group": ["@/generated/**"],
+                    "message": "Prisma-клиент берётся через getPrisma() из @/config/prisma.js (docs/wiki/conventions.md:49)."
+                  },
+                  {
+                    "group": [
+                      "./*.controller.js",
+                      "./*.routes.js",
+                      "@/*/*.controller.js",
+                      "@/*/*.routes.js"
+                    ],
+                    "message": "Сервис не знает о транспортном слое: поток идёт routes → controller → service → repository (docs/wiki/architecture.md:9)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/config/**",
+        "src/utils/**",
+        "src/types/**",
+        "src/constants/**",
+        "!src/config/prisma.ts",
+        "!src/types/prisma.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  },
+                  {
+                    "group": ["@/generated/**"],
+                    "message": "Prisma-клиент берётся через getPrisma() из @/config/prisma.js (docs/wiki/conventions.md:49)."
+                  },
+                  {
+                    "group": [
+                      "@/auth/**",
+                      "@/user/**",
+                      "@/player/**",
+                      "@/match/**",
+                      "@/field/**",
+                      "@/location/**",
+                      "@/rating/**",
+                      "@/role/**"
+                    ],
+                    "message": "Общий низ (config, utils, types, constants) не знает о доменах: зависимость направлена от домена к низу (docs/wiki/architecture.md:9)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/config/prisma.ts", "src/types/prisma.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/*/*.controller.ts",
+        "src/*/*.routes.ts",
+        "src/plugins/**",
+        "src/app.ts",
+        "src/router.ts",
+        "src/index.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fastify": {
+                    "importNames": ["errorCodes"],
+                    "message": "Доменные ошибки возвращаются записью каталога @/constants/errorCodes.js, не бросаются как FST_ERR_* (docs/wiki/conventions.md:34)."
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["../**"],
+                    "message": "Импорт за пределы модуля пишется через алиас @/ (docs/wiki/conventions.md:10)."
+                  },
+                  {
+                    "group": ["@/generated/**"],
+                    "message": "Prisma-клиент берётся через getPrisma() из @/config/prisma.js (docs/wiki/conventions.md:49)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["tests/**"],
       "linter": {
         "rules": {
-          "style": { "noMagicNumbers": "off" },
+          "style": {
+            "noMagicNumbers": "off",
+            "noExcessiveLinesPerFile": {
+              "level": "error",
+              "options": { "maxLines": 300, "skipBlankLines": true }
+            }
+          },
           "complexity": { "noExcessiveLinesPerFunction": "off" }
         }
       }
@@ -83,6 +386,19 @@
       "linter": {
         "rules": {
           "suspicious": { "noConsole": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["scripts/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": {
+              "level": "error",
+              "options": { "maxLines": 600, "skipBlankLines": true }
+            }
+          }
         }
       }
     },
@@ -110,7 +426,34 @@
             "noExcessiveCognitiveComplexity": "warn",
             "noExcessiveLinesPerFunction": "warn"
           },
-          "style": { "noNonNullAssertion": "warn" }
+          "style": {
+            "noNonNullAssertion": "warn",
+            "noExcessiveLinesPerFile": "warn"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/player/player.service.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noRestrictedImports": "warn" }
+        }
+      }
+    },
+    {
+      "includes": ["src/auth/auth.service.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noExcessiveLinesPerFile": "warn" }
+        }
+      }
+    },
+    {
+      "includes": ["tests/unit/check-comments.test.ts", "tests/unit/guardrails.test.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noExcessiveLinesPerFile": "warn" }
         }
       }
     }

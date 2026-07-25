@@ -1,7 +1,7 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
-import { errorCodes as appErrorCodes } from "../constants/index.js";
-import type { ErrorResponse } from "../types/prisma.js";
-import { isErrorShape } from "../utils/cache.js";
+import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import type { ErrorResponse } from "@/types/prisma.js";
+import { isErrorShape } from "@/utils/cache.js";
 
 const HTTP_INTERNAL_ERROR = 500;
 

@@ -1,0 +1,28 @@
+{
+  // Конфиг дерева фикстур для tests/unit/guardrails.test.ts. Правила НЕ
+  // дублируются, а наследуются из корневого biome.json: иначе red-green между
+  // тестом и подзадачей, включающей правило, не работает — тест зеленел бы на
+  // копии, а не на настоящей конфигурации проекта.
+  //
+  // Наследование через "extends" проверено прогоном на Biome 2.5.5: правило
+  // suspicious/noConsole, заданное только в корневом конфиге, срабатывает на
+  // фикстуре через этот файл.
+  //
+  // Имя файла — НЕ biome.json/biome.jsonc сознательно. Biome 2.5.5 находит
+  // такой файл автообходом и падает с «Found a nested root configuration, but
+  // there's already a root configuration», а вариант "root": false несовместим
+  // с --config-path («When an explicit configuration path is given, you must
+  // supply the project's root configuration»). Имя вне списка автообнаружения —
+  // единственная форма, которая работает.
+  //
+  // Путь в "extends" записан относительно этого файла и остаётся валидным при
+  // чтении на месте; хелпер runBiome подставляет вместо него абсолютный путь,
+  // когда копирует дерево фикстур во временный каталог.
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "extends": ["../../../../biome.json"],
+
+  // vcs корневого конфига включён с useIgnoreFile, а во временном дереве нет
+  // ни .git, ни .gitignore — Biome падает с internalError/fs «couldn't find an
+  // ignore file». На набор правил отключение не влияет.
+  "vcs": { "enabled": false, "useIgnoreFile": false }
+}

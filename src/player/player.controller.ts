@@ -3,7 +3,7 @@ import { getPrisma } from "@/config/prisma.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import type { PaginationQuery } from "@/types/pagination.js";
-import UserRepository from "../user/user.repository.js";
+import UserRepository from "@/user/user.repository.js";
 import PlayerRepository from "./player.repository.js";
 import {
   type CreatePlayer,

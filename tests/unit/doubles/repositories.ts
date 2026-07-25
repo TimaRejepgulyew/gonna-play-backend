@@ -10,6 +10,7 @@
 // добавлении нового интерфейса не меняется: добавляется только фабрика,
 // использующая `InMemoryStore`.
 
+import type { IAuthRepository, UserWithSecret } from "@/auth/auth.repository.js";
 import type Field from "@/field/field.model.js";
 import type { IFieldRepository } from "@/field/field.service.js";
 import { buildMeta } from "@/types/pagination.js";
@@ -107,8 +108,6 @@ export function resetStores(...stores: { reset(): void }[]): void {
 //     (контракт каждого метода участия закомментирован прямо в интерфейсе,
 //      `:156-178` — заглушка пишется по этим комментариям, а не по догадке)
 // ---------------------------------------------------------------------------
-
-import type { IAuthRepository, UserWithSecret } from "@/auth/auth.repository.js";
 
 /** Строка хранилища: `UserWithSecret` плюс то, что отдают два других метода. */
 export interface AuthUserRow extends StoredEntity {

@@ -1,5 +1,18 @@
 {
   "enabledPlugins": {
     "nodejs-development@dev-claude-plugins": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/check-comments.mjs\" --hook-stdin || exit 2"
+          }
+        ]
+      }
+    ]
   }
 }

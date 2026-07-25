@@ -15,6 +15,9 @@ yarn-error.log*
 dist/
 build/
 
+# Prisma generated client (prisma-client generator output)
+src/generated/
+
 # IDE and editor
 .idea/
 .vscode/

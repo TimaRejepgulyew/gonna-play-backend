@@ -1,9 +1,9 @@
-import { Prisma } from "@prisma/client";
 import type { FastifyBaseLogger } from "fastify";
 import type { MATCH_FORMAT, SURFACE_TYPE } from "@/constants/enums.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import type { ErrorResponse } from "@/types/prisma.js";
+import { Prisma } from "@/types/prisma.js";
 import {
   bumpVersion,
   CACHE_TTL,

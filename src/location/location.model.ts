@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Composite, Type } from "typebox";
 
 import { SURFACE_TYPE } from "@/constants/enums.js";
 import { paginationQuerySchema } from "@/types/pagination.js";
@@ -50,11 +50,11 @@ export const createLocationSchema = Type.Object({
 
 export const updateLocationSchema = Type.Partial(createLocationSchema);
 
-export const locationListQuerySchema = Type.Composite([
+export const locationListQuerySchema = Composite(
   paginationQuerySchema,
   Type.Object({
     city: Type.Optional(Type.String()),
     country: Type.Optional(Type.String()),
     search: Type.Optional(Type.String()),
   }),
-]);
+);

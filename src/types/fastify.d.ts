@@ -1,5 +1,5 @@
-import type { PrismaClient } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { PrismaClient } from "@/types/prisma.js";
 
 // Decorators added by `src/plugins/auth.ts` and `src/plugins/prisma.ts`. Kept in
 // a .d.ts so skipLibCheck tolerates the FastifyInstance declaration-merge in this

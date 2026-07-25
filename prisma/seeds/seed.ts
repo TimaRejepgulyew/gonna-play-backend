@@ -1,8 +1,9 @@
-import { PrismaClient } from "@prisma/client";
-
+import { PrismaPg } from "@prisma/adapter-pg";
 import { hashToStorage } from "../../src/auth/password.js";
+import { PrismaClient } from "../../src/generated/prisma/client.js";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 // Seeded credentials (plaintext for local use). Stored as `salt:hash` via the
 // same helper the auth flow uses, so the seeded admin can actually log in.

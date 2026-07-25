@@ -1,8 +1,7 @@
-import type { PrismaClient } from "@prisma/client";
-
 import { hashToStorage } from "@/auth/password.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
+import type { PrismaClient } from "@/types/prisma.js";
 import type { CreateUser, UpdateUser } from "./types.js";
 import type { User } from "./user.model.js";
 import type { IUserRepository, UserListFilters } from "./user.service.js";

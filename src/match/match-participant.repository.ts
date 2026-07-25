@@ -1,7 +1,6 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
-
 import { MATCH_STATUS, PARTICIPANT_STATUS } from "@/constants/enums.js";
 import type { PLAYER_POSITION } from "@/player/constant.js";
+import { Prisma, type PrismaClient } from "@/types/prisma.js";
 
 import type { IMatchParticipantRepository, ParticipantRecord } from "./match.service.js";
 import { SEATED_STATUSES } from "./match.service.js";

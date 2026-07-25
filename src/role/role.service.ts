@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client";
 import type { FastifyBaseLogger } from "fastify";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { ErrorResponse } from "@/types/prisma.js";
+import { Prisma } from "@/types/prisma.js";
 import type Role from "./role.model.js";
 
 export interface AssignRoleInput {

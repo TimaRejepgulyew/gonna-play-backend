@@ -1,6 +1,5 @@
-import type { PrismaClient } from "@prisma/client";
-
 import { type MATCH_STATUS, PARTICIPANT_STATUS } from "@/constants/enums.js";
+import type { PrismaClient } from "@/types/prisma.js";
 import type PlayerRating from "./rating.model.js";
 
 import type { CreateRatingData, IRatingRepository, PlayerRatingsResult } from "./rating.service.js";

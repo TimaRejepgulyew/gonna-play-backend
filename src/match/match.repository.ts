@@ -1,9 +1,8 @@
-import type { PrismaClient } from "@prisma/client";
-
 import { MATCH_STATUS, MATCH_VISIBILITY } from "@/constants/enums.js";
 import { type PLAYER_LEVEL, PLAYER_LEVEL_ORDER } from "@/player/constant.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
+import type { PrismaClient } from "@/types/prisma.js";
 import type { Match } from "./match.model.js";
 
 import type {

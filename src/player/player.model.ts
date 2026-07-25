@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Composite, Type } from "typebox";
 import { PLAYER_STATUS } from "@/constants/enums.js";
 import { paginationQuerySchema } from "@/types/pagination.js";
 import { createUserSchema, type User, updateUserSchema } from "@/user/user.model.js";
@@ -55,7 +55,7 @@ export const updatePlayerSchema = Type.Object({
   user: Type.Optional(updateUserSchema),
 });
 
-export const playerListQuerySchema = Type.Composite([
+export const playerListQuerySchema = Composite(
   paginationQuerySchema,
   Type.Object({
     level: Type.Optional(Type.Enum(PLAYER_LEVEL)),
@@ -63,4 +63,4 @@ export const playerListQuerySchema = Type.Composite([
     status: Type.Optional(Type.Enum(PLAYER_STATUS)),
     search: Type.Optional(Type.String()),
   }),
-]);
+);

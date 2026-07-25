@@ -23,7 +23,7 @@ services:
     command: sh -c "npx prisma migrate deploy && npm run test:coverage"
 
   db:
-    image: postgres:13
+    image: postgres:18
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -37,12 +37,12 @@ services:
       timeout: 3s
       retries: 15
     volumes:
-      - postgres_data_test:/var/lib/postgresql/data
+      - postgres_data_test:/var/lib/postgresql
 
   redis:
     # 6381, не 6380: на 6380 опубликован dev-Redis (docker-compose.dev.yml:25),
     # а flushdb() при очистке тестовой базы стёр бы его данные целиком.
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports:
       - '${TEST_REDIS_PORT:-6381}:6379'
     healthcheck:

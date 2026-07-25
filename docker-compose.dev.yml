@@ -20,12 +20,12 @@ services:
     command: npm run dev
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports:
       - '${REDIS_PORT:-6380}:6379'
 
   db:
-    image: postgres:13
+    image: postgres:18
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -33,7 +33,7 @@ services:
     ports:
       - '${DB_PORT:-5432}:5432'
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql
 
 volumes:
   postgres_data_dev: 

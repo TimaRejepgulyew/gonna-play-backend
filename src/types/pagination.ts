@@ -1,4 +1,4 @@
-import { type TSchema, Type } from "@sinclair/typebox";
+import { type TSchema, Type } from "typebox";
 
 export const paginationQuerySchema = Type.Object({
   page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),

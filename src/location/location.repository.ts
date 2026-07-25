@@ -1,6 +1,6 @@
-import type { PrismaClient } from "@prisma/client";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
+import type { PrismaClient } from "@/types/prisma.js";
 import type Location from "./location.model.js";
 import type {
   CreateLocation,

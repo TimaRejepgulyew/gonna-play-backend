@@ -1,6 +1,6 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
+import { Type } from "typebox";
 import { rateLimit } from "@/utils/rateLimit.js";
 import { MatchController } from "./match.controller.js";
 import {

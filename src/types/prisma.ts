@@ -3,15 +3,14 @@ import type {
   PLAYER_POSITION,
   PLAYER_STATUS,
   Player,
-  Prisma,
   Role,
   User,
   UserRole,
-} from "@prisma/client";
+} from "@/generated/prisma/client.js";
 
-export { PrismaClient } from "@prisma/client";
+export { Prisma, PrismaClient } from "@/generated/prisma/client.js";
 // Re-export Prisma types for convenient usage across the application
-export type { PLAYER_LEVEL, PLAYER_POSITION, PLAYER_STATUS, Player, Prisma, Role, User, UserRole };
+export type { PLAYER_LEVEL, PLAYER_POSITION, PLAYER_STATUS, Player, Role, User, UserRole };
 
 // Utility types for common operations
 export type UserWithRoles = User & {

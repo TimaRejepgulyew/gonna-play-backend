@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@/types/prisma.js";
 
 import type Role from "./role.model.js";
 

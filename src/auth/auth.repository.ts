@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@/types/prisma.js";
 
 export interface UserWithSecret {
   id: number;

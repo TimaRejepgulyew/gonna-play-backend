@@ -20,10 +20,10 @@ services:
       - /app/node_modules
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
 
   db:
-    image: postgres:13
+    image: postgres:18
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -31,7 +31,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
 volumes:
   postgres_data: 

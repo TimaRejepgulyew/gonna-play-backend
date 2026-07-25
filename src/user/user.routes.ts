@@ -1,6 +1,6 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
+import { Type } from "typebox";
 import { UserController } from "./user.controller.js";
 import { updateUserSchema, userListQuerySchema } from "./user.model.js";
 

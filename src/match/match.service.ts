@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import type { Logger } from "pino";
 import {
   type MATCH_FORMAT,
@@ -13,6 +12,7 @@ import { type PLAYER_LEVEL, PLAYER_LEVEL_ORDER, type PLAYER_POSITION } from "@/p
 import type { JwtPayload } from "@/plugins/auth.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import type { ErrorResponse } from "@/types/prisma.js";
+import { Prisma } from "@/types/prisma.js";
 import {
   bumpVersion,
   CACHE_TTL,

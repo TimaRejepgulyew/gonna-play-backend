@@ -1,6 +1,6 @@
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
+import { Type } from "typebox";
 import { RoleController } from "./role.controller.js";
 import { assignRoleSchema, createRoleSchema } from "./role.model.js";
 

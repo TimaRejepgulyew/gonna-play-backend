@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Composite, Type } from "typebox";
 
 import { MATCH_FORMAT, SURFACE_TYPE } from "@/constants/enums.js";
 import { paginationQuerySchema } from "@/types/pagination.js";
@@ -44,7 +44,7 @@ export const createFieldSchema = Type.Object({
 
 export const updateFieldSchema = Type.Partial(Type.Omit(createFieldSchema, ["locationId"]));
 
-export const fieldListQuerySchema = Type.Composite([
+export const fieldListQuerySchema = Composite(
   paginationQuerySchema,
   Type.Object({
     locationId: Type.Optional(Type.Integer()),
@@ -52,4 +52,4 @@ export const fieldListQuerySchema = Type.Composite([
     surface: Type.Optional(Type.Enum(SURFACE_TYPE)),
     isIndoor: Type.Optional(Type.Boolean()),
   }),
-]);
+);

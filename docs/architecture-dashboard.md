@@ -20,11 +20,11 @@
 
 | Показатель | Фактическое состояние |
 |---|---|
-| Runtime | Node.js 24 (`engines.node >=22`), TypeScript, ESM |
+| Runtime | Node.js 24 (`engines.node >=24`), TypeScript 7, ESM |
 | HTTP | Fastify 5, TypeBox-схемы |
 | Доменные модули | 8: auth, user, player, location, field, match, rating, role |
 | Маршруты | 44 доменных + `/ping` + `/docs/json` |
-| Основная БД | PostgreSQL 13 через Prisma 6 |
+| Основная БД | PostgreSQL 18 через Prisma 7 (driver adapter `@prisma/adapter-pg`) |
 | Таблицы | 9: `roles`, `users`, `user_roles`, `players`, `locations`, `fields`, `matches`, `match_participants`, `player_ratings` |
 | Redis | cache-aside, refresh-сессии, access blacklist, rate limiting |
 | Авторизация | JWT access/refresh + RBAC по именам ролей |
@@ -593,9 +593,9 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-    U[Client] -->|:3000 HTTP| B[Node 22 / Fastify container]
-    B -->|Prisma / DATABASE_URL| P[(PostgreSQL 13\npersistent volume)]
-    B -->|ioredis / REDIS_URL| R[(Redis 7\nephemeral)]
+    U[Client] -->|:3000 HTTP| B[Node 24 / Fastify container]
+    B -->|Prisma / DATABASE_URL| P[(PostgreSQL 18\npersistent volume)]
+    B -->|ioredis / REDIS_URL| R[(Redis 8\nephemeral)]
     B -->|pretty logs| L[stdout]
 ```
 

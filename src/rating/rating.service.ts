@@ -1,9 +1,9 @@
-import { Prisma } from "@prisma/client";
 import type { FastifyBaseLogger } from "fastify";
 import { MATCH_STATUS } from "@/constants/enums.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { JwtPayload } from "@/plugins/auth.js";
 import type { ErrorResponse } from "@/types/prisma.js";
+import { Prisma } from "@/types/prisma.js";
 import { bumpVersion, CACHE_TTL, cacheDel, cacheKeys, getOrSet } from "@/utils/cache.js";
 import type PlayerRating from "./rating.model.js";
 import type { RatingAggregate } from "./rating.model.js";

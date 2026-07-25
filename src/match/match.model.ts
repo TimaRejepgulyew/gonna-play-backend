@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Composite, Type } from "typebox";
 
 import {
   MATCH_FORMAT,
@@ -75,13 +75,13 @@ export const createMatchSchema = Type.Object({
 });
 
 export const updateMatchSchema = Type.Partial(
-  Type.Composite([
+  Composite(
     Type.Omit(createMatchSchema, ["fieldId", "format"]),
     Type.Object({ status: Type.Enum(MATCH_STATUS) }),
-  ]),
+  ),
 );
 
-export const matchListQuerySchema = Type.Composite([
+export const matchListQuerySchema = Composite(
   paginationQuerySchema,
   Type.Object({
     city: Type.Optional(Type.String()),
@@ -93,7 +93,7 @@ export const matchListQuerySchema = Type.Composite([
     fieldId: Type.Optional(Type.Integer()),
     organizerId: Type.Optional(Type.Integer()),
   }),
-]);
+);
 
 export const joinSchema = Type.Object({
   position: Type.Optional(Type.Enum(PLAYER_POSITION)),

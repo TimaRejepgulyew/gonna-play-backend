@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 
 import { PLAYER_LEVEL, PLAYER_POSITION } from "@/player/constant.js";
 

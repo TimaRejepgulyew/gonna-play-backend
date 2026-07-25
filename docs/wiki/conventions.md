@@ -27,7 +27,14 @@
 
 ## Обработка ошибок
 
-Доменные коды ошибок — в `src/constants/` (`errorCodes.ts`, реэкспорт через `index.ts`). Инфраструктурные — из `errorCodes` Fastify (`import { errorCodes } from "fastify"`). Сервис либо возвращает объект-ошибку `ErrorResponse` (`src/types/prisma.ts`), либо бросает `errorCodes.FST_ERR_*`. Цель — свести всё в единый `plugins/errorHandler.ts` (см. срез `auth`).
+Наружу любой ответ-ошибка — это конверт `{ code, message }` (тип `ErrorResponse`, `src/types/prisma.ts`), где `code` равен HTTP-статусу. Все коды — в каталоге `src/constants/errorCodes.ts` (реэкспорт через `index.ts`): доменные записи плюс секция `// --- Infrastructure ---` с `INTERNAL_SERVER_ERROR` (500), `ROUTE_NOT_FOUND` (404), `RATE_LIMIT_EXCEEDED` (429). Своих строковых литералов конверта в коде не заводим — только ссылки на каталог.
+
+Есть два пути, оба сводятся к одному конверту:
+
+- **Return-as-value (доменный путь).** Сервис **возвращает** запись из каталога, а не бросает; тип метода — `Promise<Entity | ErrorResponse>`. Контроллер тонко пробрасывает результат, а хук `preSerialization` в `buildApp` (`src/app.ts`) распознаёт конверт guard-ом `isErrorShape` (`src/utils/cache.ts`) и промотирует `code` в HTTP-статус. Бросать встроенные ошибки Fastify (`errorCodes.FST_ERR_*` из `import { errorCodes } from "fastify"`) — нельзя.
+- **Thrown-путь.** Всё брошенное (валидация TypeBox, неизвестный роут, инфраструктурный сбой) перехватывает центральный `src/plugins/errorHandler.ts`, зарегистрированный в `buildApp` через `setErrorHandler`/`setNotFoundHandler`. Он нормализует бросок к тому же конверту: готовый конверт пропускает как есть, клиентскую ошибку (`statusCode < 500`) отдаёт как `{ code: statusCode, message }`, а 5xx и неизвестное логирует и заменяет генериком `INTERNAL_SERVER_ERROR` — внутренности наружу не текут.
+
+Инфраструктурный сбой сервис логирует инъектированным `FastifyBaseLogger` и re-throw-ит — его подхватывает центральный обработчик.
 
 ## Prisma: имена
 

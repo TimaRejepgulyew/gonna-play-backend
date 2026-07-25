@@ -29,13 +29,23 @@
 - `redis` — клиент Redis на инстансе Fastify (`src/plugins/redis.ts`);
 - `swagger` — спецификация OpenAPI на `GET /docs/json` (UI не подключён), из неё генерируется Postman.
 
-Не плагином, а иначе: rate-limit — per-route утилита `src/utils/rateLimit.ts` (preHandler), в первую очередь на входе; перевод ошибок в HTTP-код — инлайновый `preSerialization`-хук в `src/app.ts`, а не отдельный `errorHandler`.
+Не плагином, а иначе: rate-limit — per-route утилита `src/utils/rateLimit.ts` (preHandler), в первую очередь на входе; ошибки сводятся к единому конверту двумя механизмами — `preSerialization`-хук в `src/app.ts` промотирует `code` возвращённого сервисом конверта в HTTP-статус (доменный путь), а центральный `src/plugins/errorHandler.ts` (`setErrorHandler`/`setNotFoundHandler`) нормализует всё брошенное — валидацию, неизвестный роут, 5xx (thrown-путь). Подробности — в [conventions.md](conventions.md#обработка-ошибок).
 
-Целевые, но ещё не реализованы: `helmet` (пакет установлен, но не регистрируется), версионирование `apiVersion` + разбор User-Agent (префикс `/v1`, force-update, таргетинг флагов), `featureFlags`, единый `plugins/errorHandler.ts`.
+Целевые, но ещё не реализованы: `helmet` (пакет установлен, но не регистрируется), версионирование `apiVersion` + разбор User-Agent (префикс `/v1`, force-update, таргетинг флагов), `featureFlags`.
 
 ## Данные
 
 Единый клиент Prisma живёт в `src/config/prisma.ts` и подключается плагином `src/plugins/prisma.ts`. PostgreSQL — основное хранилище состояния. Redis используется как второе хранилище: кеш ответов (`src/utils/cache.ts`), refresh-токены (`src/auth/refreshStore.ts`) и rate-limit. Клиент — по той же ленивой схеме, что Prisma (`src/config/redis.ts`, плагин `src/plugins/redis.ts`).
+
+## Логирование
+
+Логгер — pino, встроенный в Fastify через `Fastify({ logger })`. Конфиг собирает фабрика `buildLoggerConfig` в `src/config/logger.ts` (дефолтный экспорт), которая читает три env-переменные из `src/config/env.ts`:
+
+- `LOG_LEVEL` (дефолт `info`) — уровень pino: `trace | debug | info | warn | error | fatal`.
+- `LOG_TRANSPORT` (дефолт `file`) — сменяемый транспорт: `file` — встроенный `pino/file` в файл (дефолт), `pretty` — `pino-pretty` в stdout для dev, `stdout` — NDJSON в stdout под сборщик логов. Неизвестное значение молча откатывается к `file`.
+- `LOG_FILE` (дефолт `logs/app.log`) — путь файла при `LOG_TRANSPORT=file`; директория создаётся автоматически (`mkdir: true`). Файл под `.gitignore`.
+
+Смена backend-а логов — это смена значения env, кода приложения не касается: рабочие транспорты pino крутятся в worker-thread и не блокируют event loop. Отдельно — синхронный `createBootstrapLogger()` из того же модуля: он пишет через `pino.destination({ sync: true })` и нужен только в catch стартового bootstrap (`src/index.ts`), где `server.log` ещё недоступен, а асинхронный транспорт потерял бы fatal-запись перед `process.exit(1)`.
 
 ## Фоновые задачи
 

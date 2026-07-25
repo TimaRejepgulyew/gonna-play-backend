@@ -13,7 +13,7 @@ export class UserController {
   constructor(_server: FastifyInstance) {
     const prisma = getPrisma();
     const userRepository = new UserRepository(prisma);
-    this.userService = new UserService(userRepository);
+    this.userService = new UserService(userRepository, _server.log);
   }
 
   getUserList(req: { query: PaginationQuery & UserListFilters }) {

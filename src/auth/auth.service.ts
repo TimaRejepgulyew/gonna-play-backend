@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyBaseLogger } from "fastify";
-import { errorCodes } from "fastify";
 import env from "@/config/env.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import type { PLAYER_LEVEL, PLAYER_POSITION } from "@/player/constant.js";
@@ -121,7 +120,7 @@ export class AuthService {
       user = await this.userRepository.createUser(createUserInput);
     } catch (error) {
       this.logger.error(error);
-      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER();
+      throw error;
     }
 
     if (!user) {

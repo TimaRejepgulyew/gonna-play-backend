@@ -1,9 +1,9 @@
-import { errorCodes } from "fastify";
-
+import type { FastifyBaseLogger } from "fastify";
 import { errorCodes as userErrorCodes } from "@/constants/index.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 
 import type { ErrorResponse } from "@/types/prisma.js";
+import { isErrorShape } from "@/utils/cache.js";
 import type { CreateUser, UpdateUser } from "./types.js";
 import { User } from "./user.model.js";
 
@@ -25,7 +25,14 @@ export interface IUserRepository {
 }
 
 export default class UserService {
-  constructor(private userRepository: IUserRepository) {}
+  private logger: FastifyBaseLogger;
+
+  constructor(
+    private userRepository: IUserRepository,
+    logger: FastifyBaseLogger,
+  ) {
+    this.logger = logger;
+  }
 
   getUserList(
     pagination?: PaginationQuery,
@@ -46,36 +53,41 @@ export default class UserService {
         return userErrorCodes.USER_NOT_CREATED;
       }
       return new User(createdUser);
-    } catch {
-      throw errorCodes.FST_ERR_CTP_INVALID_HANDLER();
+    } catch (error) {
+      this.logger.error({ err: error }, "createUser failed");
+      throw error;
     }
   }
 
-  async getUser(id: number): Promise<User> {
+  async getUser(id: number): Promise<User | ErrorResponse> {
     const user = await this.userRepository.getUser(id);
 
     if (!user) {
-      throw errorCodes.FST_ERR_NOT_FOUND();
+      return userErrorCodes.USER_NOT_FOUND;
     }
 
     return user;
   }
 
-  async updateUser(updateUser: UpdateUser): Promise<User | null> {
+  async updateUser(updateUser: UpdateUser): Promise<User | ErrorResponse> {
     const user = await this.getUser(updateUser.id);
 
-    if (!user) {
-      throw errorCodes.FST_ERR_NOT_FOUND();
+    if (isErrorShape(user)) {
+      return user;
     }
 
-    return this.userRepository.updateUser(updateUser);
+    const updated = await this.userRepository.updateUser(updateUser);
+    if (!updated) {
+      return userErrorCodes.USER_NOT_FOUND;
+    }
+    return updated;
   }
 
-  async deleteUser(id: number): Promise<number> {
+  async deleteUser(id: number): Promise<number | ErrorResponse> {
     const deletedUser = await this.userRepository.deleteUser(id);
 
     if (!deletedUser) {
-      throw errorCodes.FST_ERR_NOT_FOUND();
+      return userErrorCodes.USER_NOT_FOUND;
     }
     return deletedUser;
   }

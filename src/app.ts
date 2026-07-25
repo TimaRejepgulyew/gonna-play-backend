@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyServerOptions } from "fastify";
 import Fastify from "fastify";
 import loggerConfig from "./config/logger.js";
 import authPlugin from "./plugins/auth.js";
+import { appErrorHandler, appNotFoundHandler } from "./plugins/errorHandler.js";
 import prismaPlugin from "./plugins/prisma.js";
 import redisPlugin from "./plugins/redis.js";
 import swaggerPlugin from "./plugins/swagger.js";
@@ -28,6 +29,9 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<AppInstance>
   server.register(redisPlugin);
   server.register(authPlugin);
   server.register(swaggerPlugin);
+
+  server.setErrorHandler(appErrorHandler);
+  server.setNotFoundHandler(appNotFoundHandler);
 
   server.addHook("preSerialization", async (_request, reply, payload) => {
     if (isErrorShape(payload)) {

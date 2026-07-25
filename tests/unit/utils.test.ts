@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { errorCodes } from "@/constants/index.js";
 import { buildMeta, resolvePagination } from "@/types/pagination.js";
 import { isErrorShape } from "@/utils/cache.js";
 
@@ -24,6 +25,12 @@ describe("isErrorShape", () => {
     ["code as a string", { code: "404", message: "not found" }, false],
   ])("%s → %s", (_name, input, expected) => {
     expect(isErrorShape(input)).toBe(expected);
+  });
+
+  // G5: the rate-limit body is a catalogue entry, not an inline literal.
+  it("RATE_LIMIT_EXCEEDED is a canonical 429 envelope", () => {
+    expect(isErrorShape(errorCodes.RATE_LIMIT_EXCEEDED)).toBe(true);
+    expect(errorCodes.RATE_LIMIT_EXCEEDED.code).toBe(429);
   });
 });
 

@@ -42,4 +42,12 @@ export default {
   RATE_LIMIT_ENABLED: toBool(process.env.RATE_LIMIT_ENABLED, true),
   RATE_LIMIT_WINDOW: toInt(process.env.RATE_LIMIT_WINDOW, 60),
   RATE_LIMIT_MAX: toInt(process.env.RATE_LIMIT_MAX, 120),
+
+  // --- Logging ---
+  // pino level: trace | debug | info | warn | error | fatal (default info).
+  LOG_LEVEL: process.env.LOG_LEVEL || "info",
+  // Transport: file (default, pino/file) | pretty (pino-pretty, dev) | stdout (NDJSON to stdout).
+  LOG_TRANSPORT: process.env.LOG_TRANSPORT || "file",
+  // File path for LOG_TRANSPORT=file; directory is created automatically (mkdir: true).
+  LOG_FILE: process.env.LOG_FILE || "logs/app.log",
 };

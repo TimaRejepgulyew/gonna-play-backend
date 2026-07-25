@@ -112,4 +112,12 @@ export const errorCodes = {
     code: 409,
     message: "Role already assigned to this user",
   },
+
+  // --- Infrastructure ---
+  INTERNAL_SERVER_ERROR: { code: 500, message: "Internal server error" },
+  ROUTE_NOT_FOUND: { code: 404, message: "Route not found" },
+  RATE_LIMIT_EXCEEDED: {
+    code: 429,
+    message: "Too many requests, please try again later",
+  },
 };

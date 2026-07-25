@@ -56,26 +56,21 @@ export default class UserRepository implements IUserRepository {
   }
 
   async createUser(user: CreateUser): Promise<User | null> {
-    try {
-      const createdUser = await this.prisma.user.create({
-        data: {
-          birthDate: user.birthDate,
-          email: user.email,
-          gender: user.gender,
-          name: user.name,
-          phone: user.phone,
-          city: user.city,
-          country: user.country,
-          // Store `salt:hash` so login can verify the password later.
-          password: hashToStorage(user.password),
-        },
-        omit: { password: true },
-      });
-      return createdUser as unknown as User;
-    } catch (error) {
-      console.log("error", error);
-      throw error;
-    }
+    const createdUser = await this.prisma.user.create({
+      data: {
+        birthDate: user.birthDate,
+        email: user.email,
+        gender: user.gender,
+        name: user.name,
+        phone: user.phone,
+        city: user.city,
+        country: user.country,
+        // Store `salt:hash` so login can verify the password later.
+        password: hashToStorage(user.password),
+      },
+      omit: { password: true },
+    });
+    return createdUser as unknown as User;
   }
 
   async getUser(id: number): Promise<User | null> {

@@ -8,6 +8,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppInstance } from "@/app.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
+import { isErrorShape } from "@/utils/cache.js";
 import { createActor, relogin } from "../helpers/actors.js";
 import { createTestApp, destroyTestApp } from "../helpers/app.js";
 
@@ -111,16 +112,15 @@ describe("INT-04: POST /api/player/", () => {
 
     expect(res.statusCode).toBe(400);
 
-    // Тело именно от TypeBox/ajv, а не от сервиса: форма Fastify-ошибки валидации
-    // (statusCode/error/message), а не форма ErrorResponse из src/constants/errorCodes.ts.
+    // appErrorHandler normalises the TypeBox/ajv validation error to a single
+    // { code, message } envelope: numeric code === HTTP status, validator message passed through.
     const body = res.json() as {
-      statusCode: number;
-      error: string;
+      code: number;
       message: string;
-      code?: string;
     };
-    expect(body.error).toBe("Bad Request");
-    expect(body.code).toBe("FST_ERR_VALIDATION");
+    expect(Object.keys(body).sort()).toEqual(["code", "message"]);
+    expect(isErrorShape(body)).toBe(true);
+    expect(body.code).toBe(400);
     expect(body.message).toContain("name");
   });
 

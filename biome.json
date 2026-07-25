@@ -113,14 +113,6 @@
           "style": { "noNonNullAssertion": "warn" }
         }
       }
-    },
-    {
-      "includes": ["src/index.ts", "src/user/user.repository.ts"],
-      "linter": {
-        "rules": {
-          "suspicious": { "noConsole": "warn" }
-        }
-      }
     }
   ]
 }

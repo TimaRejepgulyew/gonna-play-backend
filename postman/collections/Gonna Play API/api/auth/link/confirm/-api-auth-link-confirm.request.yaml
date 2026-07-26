@@ -1,0 +1,19 @@
+$kind: http-request
+name: /api/auth/link/confirm
+url: "{{baseUrl}}/api/auth/link/confirm"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ticket": "<string>",
+      "password": "<string>",
+      "proof": {
+        "provider": "TELEGRAM",
+        "credential": ""
+      }
+    }
+examples: ./.resources/-api-auth-link-confirm.resources/examples
+order: 1000

@@ -20,30 +20,58 @@ model Role {
 }
 
 model User {
-  id                 Int      @id @default(autoincrement())
-  avatar             String?
-  birthDate          String
-  city               String?
-  country            String?
-  email              String   @unique
-  gender             String?
-  isActive           Boolean? @default(true)
-  isEmailVerified    Boolean? @default(false)
-  isPhoneVerified    Boolean? @default(false)
-  isTelegramVerified Boolean? @default(false)
-  name               String?
-  password           String
-  phone              String?
-  telegramId         String?
-  telegramUsername   String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  avatar          String?
+  birthDate       String?
+  city            String?
+  country         String?
+  email           String?  @unique
+  firstName       String?
+  gender          String?
+  isActive        Boolean? @default(true)
+  isEmailVerified Boolean? @default(false)
+  isPhoneVerified Boolean? @default(false)
+  lastName        String?
+  name            String?
+  password        String?
+  phone           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  player    Player?
-  userRoles UserRole[]
+  identities AuthIdentity[]
+  player     Player?
+  userRoles  UserRole[]
 
   @@map("users")
+}
+
+model AuthIdentity {
+  id                    Int           @id @default(autoincrement())
+  userId                Int
+  provider              AUTH_PROVIDER
+  providerUserId        String
+  email                 String?
+  username              String?
+  lastLoginAt           DateTime?
+  // Долгоживущий refresh-токен провайдера, зашифрованный AES-256-GCM.
+  // Заполняется только для APPLE и только ради отзыва доступа при удалении
+  // аккаунта. Открытым текстом здесь не лежит ничего.
+  refreshTokenEncrypted String?
+  refreshTokenUpdatedAt DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  // Инвариант «одна запись на провайдера у пользователя»: отвязка удаляет строки
+  // пачкой и снесла бы дубликаты разом, а выбор refresh-токена Apple стал бы
+  // произвольным. Проверка в сервисе идёт до вставки и гонку не закрывает.
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("auth_identities")
 }
 
 model UserRole {
@@ -203,6 +231,12 @@ model PlayerRating {
   @@index([raterId])
   @@index([matchId])
   @@map("player_ratings")
+}
+
+enum AUTH_PROVIDER {
+  GOOGLE   @map("google")
+  APPLE    @map("apple")
+  TELEGRAM @map("telegram")
 }
 
 enum PLAYER_LEVEL {

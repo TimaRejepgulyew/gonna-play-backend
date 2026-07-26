@@ -1,0 +1,21 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/auth/me"
+  method: DELETE
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": "success",
+        "message": "<string>",
+        "appleAccessRevoked": "<boolean>"
+      }
+order: 1000

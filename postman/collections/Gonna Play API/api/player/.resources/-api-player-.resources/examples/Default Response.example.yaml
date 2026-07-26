@@ -22,9 +22,7 @@ request:
           "country": "<string>",
           "firstName": "<string>",
           "gender": "<string>",
-          "lastName": "<string>",
-          "telegramId": "<string>",
-          "telegramUsername": "<string>"
+          "lastName": "<string>"
         }
       }
 response:

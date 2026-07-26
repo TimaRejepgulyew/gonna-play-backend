@@ -6,6 +6,7 @@
 // numbers below are the post-refactor ones, verified against the code — the
 // plan still cites pre-refactor positions:
 //   get      src/utils/cache.ts:68, :121
+//   getdel   src/auth/linkTicket.ts:52
 //   set      src/utils/cache.ts:82, src/auth/refreshStore.ts:34, :99
 //   del      src/utils/cache.ts:92, src/auth/refreshStore.ts:68, :83, :84
 //   incr     src/utils/cache.ts:134, src/utils/rateLimit.ts:32
@@ -23,6 +24,7 @@ const sets = new Map<string, Set<string>>();
 
 export interface RedisStub {
   get(key: string): Promise<string | null>;
+  getdel(key: string): Promise<string | null>;
   set(key: string, value: string, ..._rest: unknown[]): Promise<string>;
   del(...keys: string[]): Promise<number>;
   incr(key: string): Promise<number>;
@@ -41,6 +43,13 @@ export interface RedisStub {
 const stub: RedisStub = {
   async get(key) {
     return store.get(key) ?? null;
+  },
+  // Read and delete in one step, as the real GETDEL does: the one-shot link
+  // ticket (src/auth/linkTicket.ts:52) rests on the second read finding nothing.
+  async getdel(key) {
+    const value = store.get(key) ?? null;
+    store.delete(key);
+    return value;
   },
   // Signature with "EX" <ttl> — as in src/utils/cache.ts:82 and
   // src/auth/refreshStore.ts:34. Extra arguments are accepted and ignored.

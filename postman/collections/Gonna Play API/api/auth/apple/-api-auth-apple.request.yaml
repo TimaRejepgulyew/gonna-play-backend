@@ -1,0 +1,23 @@
+$kind: http-request
+name: /api/auth/apple
+url: "{{baseUrl}}/api/auth/apple"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "identityToken": "<string>",
+      "authorizationCode": "<string>",
+      "user": {
+        "name": {
+          "firstName": "<string>",
+          "lastName": "<string>"
+        },
+        "email": "<string>"
+      },
+      "nonce": "<string>"
+    }
+examples: ./.resources/-api-auth-apple.resources/examples
+order: 1000

@@ -4,9 +4,13 @@ import { PLAYER_LEVEL, PLAYER_POSITION } from "@/player/constant.js";
 
 export const authUserSchema = Type.Object({
   id: Type.Integer(),
-  email: Type.String(),
+  // Необязателен: Telegram почты не отдаёт, а Fastify сериализует ответ по
+  // схеме — обязательное поле с null вернуло бы 500 на первом же таком входе.
+  email: Type.Optional(Type.String()),
   name: Type.Optional(Type.String()),
   playerId: Type.Optional(Type.Integer()),
+  // «Есть email и есть birthDate» — сигнал клиенту показать форму дозаполнения.
+  profileComplete: Type.Optional(Type.Boolean()),
 });
 
 export const authSuccessSchema = Type.Object({

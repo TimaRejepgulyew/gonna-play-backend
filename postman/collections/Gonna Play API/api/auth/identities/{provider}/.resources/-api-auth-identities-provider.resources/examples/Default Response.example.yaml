@@ -1,0 +1,28 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/auth/identities/:provider"
+  method: POST
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "hasPassword": "<boolean>",
+        "identities": [
+          {
+            "provider": "TELEGRAM",
+            "linkedAt": "<string>",
+            "email": "<string>",
+            "username": "<string>",
+            "lastLoginAt": "<string>"
+          }
+        ]
+      }
+order: 1000

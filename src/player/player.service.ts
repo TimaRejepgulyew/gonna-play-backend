@@ -69,10 +69,13 @@ export class PlayerService {
     let user: User | null = null;
     try {
       if (!player.userId && player.user) {
-        const hasDuplicateEmail = await this.userRepository.getUserByEmail(player.user.email);
+        // Искать по пустой почте нельзя: `findUnique` не принимает `null`.
+        const hasDuplicateEmail = player.user.email
+          ? await this.userRepository.getUserByEmail(player.user.email)
+          : null;
 
         if (hasDuplicateEmail) {
-          this.logger.error(`User with email ${player.user.email} already exists`);
+          this.logger.error({ email: player.user.email }, "User with this email already exists");
           return userErrorCodes.USER_EMAIL_DUPLICATED;
         }
 

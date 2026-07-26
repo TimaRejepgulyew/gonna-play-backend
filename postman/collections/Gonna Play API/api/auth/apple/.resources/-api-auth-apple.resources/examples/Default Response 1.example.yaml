@@ -1,0 +1,40 @@
+$kind: http-example
+name: Default Response
+request:
+  url: "{{baseUrl}}/api/auth/apple"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "identityToken": "<string>",
+        "authorizationCode": "<string>",
+        "user": {
+          "name": {
+            "firstName": "<string>",
+            "lastName": "<string>"
+          },
+          "email": "<string>"
+        },
+        "nonce": "<string>"
+      }
+response:
+  statusCode: 202
+  statusText: Accepted
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": "link_required",
+        "ticket": "<string>",
+        "provider": "APPLE",
+        "email": "<string>",
+        "methods": [
+          "password"
+        ]
+      }
+order: 2000

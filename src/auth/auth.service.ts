@@ -10,6 +10,7 @@ import type { ErrorResponse } from "@/types/prisma.js";
 import type { CreateUser, UpdateUser } from "@/user/types.js";
 import type UserRepository from "@/user/user.repository.js";
 import type AuthRepository from "./auth.repository.js";
+import { isProfileComplete } from "./identity.helpers.js";
 import { verifyPassword } from "./password.js";
 import {
   blacklistAccess,
@@ -47,9 +48,26 @@ export interface LoginInput {
 
 export interface AuthUser {
   id: number;
-  email: string;
+  email?: string;
   name?: string;
   playerId?: number;
+  /** «Есть почта и есть дата рождения» (§9.5.4): сигнал клиенту дособрать анкету. */
+  profileComplete?: boolean;
+}
+
+// Единственная сборка пользователя в ответе: признак готовности профиля иначе
+// разъезжается по веткам и где-нибудь оказывается незаполненным.
+function toAuthUser(
+  user: { id: number; email?: string | null; name?: string | null; birthDate?: string | null },
+  playerId?: number,
+): AuthUser {
+  return {
+    id: user.id,
+    email: user.email ?? undefined,
+    name: user.name ?? undefined,
+    playerId,
+    profileComplete: isProfileComplete(user),
+  };
 }
 
 export interface AuthSuccess {
@@ -89,9 +107,7 @@ export class AuthService {
 
   // Signs a pair and records the refresh token as active in Redis (best-effort;
   // a down Redis still returns usable tokens — cache-design.md §5.1).
-  private async issueTokens(
-    payload: JwtPayload,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  async issueTokens(payload: JwtPayload): Promise<{ accessToken: string; refreshToken: string }> {
     const { accessToken, refreshToken, refreshJti } = this.buildTokens(payload);
     await storeRefresh(payload.sub, refreshJti, env.REFRESH_TOKEN_TTL);
     return { accessToken, refreshToken };
@@ -100,7 +116,7 @@ export class AuthService {
   async register(input: RegisterInput): Promise<AuthSuccess | ErrorResponse> {
     const duplicate = await this.userRepository.getUserByEmail(input.email);
     if (duplicate) {
-      this.logger.error(`User with email ${input.email} already exists`);
+      this.logger.error({ email: input.email }, "user with this email already exists");
       return appErrorCodes.USER_EMAIL_DUPLICATED;
     }
 
@@ -130,7 +146,7 @@ export class AuthService {
     let playerId: number | undefined;
     if (input.createPlayer) {
       const createdPlayer = await this.playerRepository.createPlayer({
-        name: input.name || input.email,
+        name: input.name || input.email || `Player #${user.id}`,
         userId: user.id,
         level: input.level,
         position: input.position,
@@ -141,18 +157,13 @@ export class AuthService {
 
     const payload: JwtPayload = {
       sub: user.id,
-      email: user.email,
+      email: user.email ?? null,
       roles: [],
       playerId,
     };
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        playerId,
-      },
+      user: toAuthUser(user, playerId),
       ...(await this.issueTokens(payload)),
     };
   }
@@ -164,9 +175,12 @@ export class AuthService {
       return appErrorCodes.AUTH_INVALID_CREDENTIALS;
     }
 
-    const [roles, playerId] = await Promise.all([
+    // Профиль читается третьим запросом той же волны: `UserWithSecret` даты
+    // рождения не несёт, а без неё готовность профиля не посчитать.
+    const [roles, playerId, profile] = await Promise.all([
       this.authRepository.getRoleNames(user.id),
       this.authRepository.getPlayerIdByUserId(user.id),
+      this.userRepository.getUser(user.id),
     ]);
 
     const payload: JwtPayload = {
@@ -177,12 +191,7 @@ export class AuthService {
     };
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name ?? undefined,
-        playerId,
-      },
+      user: toAuthUser({ ...user, birthDate: profile?.birthDate }, playerId),
       ...(await this.issueTokens(payload)),
     };
   }
@@ -238,12 +247,7 @@ export class AuthService {
       return appErrorCodes.USER_NOT_FOUND;
     }
     const playerId = await this.authRepository.getPlayerIdByUserId(userId);
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      playerId,
-    };
+    return toAuthUser(user, playerId);
   }
 
   // Logout: revoke every refresh token for the user (log out all sessions) and,

@@ -19,6 +19,25 @@ export interface CreateActorOptions {
   name?: string;
 }
 
+/**
+ * Актёр без пароля. Токена не несёт: войти по паролю такой аккаунт не может
+ * (verifyPassword с null отдаёт false — src/auth/password.ts:25-27), а сессию
+ * ему выдаёт только вход через провайдера, который тест собирает сам.
+ */
+export interface PasswordlessActor {
+  userId: number;
+  playerId?: number;
+  email: string | null;
+}
+
+export interface CreatePasswordlessActorOptions {
+  roles?: string[];
+  withPlayer?: boolean;
+  /** null — аккаунт вообще без почты, как у входа через Telegram. */
+  email?: string | null;
+  name?: string;
+}
+
 // >= 6 символов — loginSchema, src/auth/auth.model.ts:43.
 const DEFAULT_PASSWORD = "Passw0rd!";
 
@@ -76,27 +95,67 @@ export async function createActor(app: AppInstance, opts: CreateActorOptions = {
       // писать нельзя: verifyPassword (:31) не пропустил бы логин.
       password: hashToStorage(password),
       name,
-      birthDate: "1990-01-01", // обязательное поле, prisma/schema.prisma:25
+      // Поле необязательное (prisma/schema.prisma:22), но парольный актёр
+      // заполняет его: на нём держатся сценарии с полным профилем.
+      birthDate: "1990-01-01",
     },
   });
+
+  await attachRolesAndPlayer(user.id, name, opts);
+
+  // Логин ПОСЛЕ ролей и профиля — иначе токен их не увидит.
+  const { accessToken, playerId } = await login(app, email, password);
+
+  return { userId: user.id, playerId, email, password, token: accessToken };
+}
+
+async function attachRolesAndPlayer(
+  userId: number,
+  name: string,
+  opts: { roles?: string[]; withPlayer?: boolean },
+): Promise<number | undefined> {
+  const prisma = getPrisma();
 
   for (const roleName of opts.roles ?? []) {
     const role = await prisma.role.findUniqueOrThrow({
       where: { name: roleName },
     });
     await prisma.userRole.create({
-      data: { userId: user.id, roleId: role.id },
+      data: { userId, roleId: role.id },
     });
   }
 
-  if (opts.withPlayer) {
-    await prisma.player.create({ data: { name, userId: user.id } });
+  if (!opts.withPlayer) {
+    return undefined;
   }
 
-  // Логин ПОСЛЕ ролей и профиля — иначе токен их не увидит.
-  const { accessToken, playerId } = await login(app, email, password);
+  const player = await prisma.player.create({ data: { name, userId } });
+  return player.id;
+}
 
-  return { userId: user.id, playerId, email, password, token: accessToken };
+/**
+ * Создаёт пользователя без пароля — так выглядит аккаунт, заведённый входом
+ * через провайдера. По HTTP не логинится: логиниться такому аккаунту нечем,
+ * штатный вход по паролю отдаёт AUTH_INVALID_CREDENTIALS. Токен, если он нужен
+ * тесту, добывается провайдерским входом в самом тесте.
+ *
+ * Роли и профиль игрока создаются так же, как у парольного актёра.
+ */
+export async function createPasswordlessActor(
+  opts: CreatePasswordlessActorOptions = {},
+): Promise<PasswordlessActor> {
+  const prisma = getPrisma();
+
+  const email = opts.email === undefined ? `actor-${randomUUID()}@test.local` : opts.email;
+  const name = opts.name ?? "Test Actor";
+
+  const user = await prisma.user.create({
+    data: { email, name },
+  });
+
+  const playerId = await attachRolesAndPlayer(user.id, name, opts);
+
+  return { userId: user.id, playerId, email };
 }
 
 /**

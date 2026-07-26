@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import { closePrisma, getPrisma } from "@/config/prisma.js";
 import { closeRedis, getRedis, setRedis } from "@/config/redis.js";
+import { getHttp, type HttpClient, setHttp } from "@/utils/http.js";
 
 // Минимальная заглушка: слоту достаточно объекта с quit(), потому что afterEach
 // unit-setup.ts зовёт closeRedis(), а тот зовёт quit() на том, что лежит в слоте.
@@ -60,6 +61,49 @@ describe("runtime clients: redis slot", () => {
 
     expect(getRedis()).toBe(stubB);
     expect(getRedis()).not.toBe(stubA);
+  });
+});
+
+// Заглушка транспорта: слоту достаточно объекта с send(). Реальная
+// fetch-реализация юнитом не покрывается — честная проверка требует сокета.
+function makeHttpStub(tag: string): HttpClient {
+  return {
+    tag,
+    send: async () => ({ ok: true, status: 200, body: tag }),
+  } as unknown as HttpClient;
+}
+
+describe("runtime clients: http slot", () => {
+  it("после setHttp(stub) getHttp() отдаёт тождественно ту же заглушку", () => {
+    const stubA = makeHttpStub("A");
+    setHttp(stubA);
+
+    // Голым getHttp() проверять нельзя по той же причине, что и Redis: пустой
+    // слот означал бы создание настоящего клиента (§11.1).
+    expect(getHttp()).toBe(stubA);
+  });
+
+  it("при занятом слоте два вызова подряд дают один и тот же объект", () => {
+    const stubA = makeHttpStub("A");
+    setHttp(stubA);
+
+    const first = getHttp();
+    const second = getHttp();
+
+    expect(first).toBe(second);
+    expect(second).toBe(stubA);
+  });
+
+  it("setHttp() перезанимает слот: следующая заглушка вытесняет прежнюю", () => {
+    const stubA = makeHttpStub("A");
+    setHttp(stubA);
+    expect(getHttp()).toBe(stubA);
+
+    const stubB = makeHttpStub("B");
+    setHttp(stubB);
+
+    expect(getHttp()).toBe(stubB);
+    expect(getHttp()).not.toBe(stubA);
   });
 });
 

@@ -1,10 +1,11 @@
 import type { PrismaClient } from "@/types/prisma.js";
+import { normalizeEmail } from "@/utils/email.js";
 
 export interface UserWithSecret {
   id: number;
-  email: string;
+  email: string | null;
   name: string | null;
-  password: string;
+  password: string | null;
 }
 
 export interface IAuthRepository {
@@ -18,9 +19,14 @@ export default class AuthRepository implements IAuthRepository {
 
   // Unlike UserRepository.getUserByEmail (which drops the password), this
   // returns the stored `salt:hash` so login can verify the credentials.
+  //
+  // Почта нормализуется на границе репозитория: индекс `users.email`
+  // регистрозависим, а искать надо ровно тем же значением, каким пишут.
   async getUserByEmailWithSecret(email: string): Promise<UserWithSecret | null> {
+    const normalized = normalizeEmail(email);
+    if (normalized === null) return null;
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalized },
       select: { id: true, email: true, name: true, password: true },
     });
   }

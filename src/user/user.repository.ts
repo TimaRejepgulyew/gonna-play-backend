@@ -1,7 +1,8 @@
 import { hashToStorage } from "@/auth/password.js";
 import type { PaginatedResult, PaginationQuery } from "@/types/pagination.js";
 import { resolvePagination } from "@/types/pagination.js";
-import type { PrismaClient } from "@/types/prisma.js";
+import { Prisma, type PrismaClient } from "@/types/prisma.js";
+import { normalizeEmail, normalizeEmailPatch } from "@/utils/email.js";
 import type { CreateUser, UpdateUser } from "./types.js";
 import type { User } from "./user.model.js";
 import type { IUserRepository, UserListFilters } from "./user.service.js";
@@ -48,9 +49,14 @@ export default class UserRepository implements IUserRepository {
     };
   }
 
+  // Единое правило почты применяется здесь же, на границе репозитория: индекс
+  // `users.email` регистрозависим, поэтому искать надо тем же значением, каким
+  // пишут `createUser`/`updateUser` и провайдерская половина среза.
   async getUserByEmail(email: string): Promise<User | null> {
+    const normalized = normalizeEmail(email);
+    if (normalized === null) return null;
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalized },
       omit: { password: true },
     }) as unknown as User | null;
   }
@@ -59,14 +65,17 @@ export default class UserRepository implements IUserRepository {
     const createdUser = await this.prisma.user.create({
       data: {
         birthDate: user.birthDate,
-        email: user.email,
+        email: normalizeEmailPatch(user.email),
+        firstName: user.firstName,
+        lastName: user.lastName,
         gender: user.gender,
         name: user.name,
         phone: user.phone,
         city: user.city,
         country: user.country,
         // Store `salt:hash` so login can verify the password later.
-        password: hashToStorage(user.password),
+        // Беспарольные аккаунты приходят без пароля — колонка остаётся пустой.
+        ...(user.password ? { password: hashToStorage(user.password) } : {}),
       },
       omit: { password: true },
     });
@@ -87,19 +96,20 @@ export default class UserRepository implements IUserRepository {
       where: { id: user.id },
       data: {
         birthDate: user.birthDate,
-        email: user.email,
+        // `undefined` здесь значит «поле не трогаем», поэтому в `null` его
+        // превращать нельзя: это стёрло бы почту у обновляемого аккаунта.
+        email: normalizeEmailPatch(user.email),
+        firstName: user.firstName,
+        lastName: user.lastName,
         name: user.name,
         gender: user.gender,
         phone: user.phone,
-        telegramId: user.telegramId,
-        telegramUsername: user.telegramUsername,
         avatar: user.avatar,
         city: user.city,
         country: user.country,
         isActive: user.isActive,
         isEmailVerified: user.isEmailVerified,
         isPhoneVerified: user.isPhoneVerified,
-        isTelegramVerified: user.isTelegramVerified,
       },
       omit: { password: true },
     });
@@ -108,15 +118,18 @@ export default class UserRepository implements IUserRepository {
   }
 
   async deleteUser(id: number): Promise<number | null> {
-    const deletedUser = await this.prisma.user.delete({
-      where: { id },
-      omit: { password: true },
-    });
-
-    if (!deletedUser) {
-      return null;
+    try {
+      await this.prisma.user.delete({
+        where: { id },
+        omit: { password: true },
+      });
+      return id;
+    } catch (error) {
+      // P2025 — строки нет: отсутствие записи это `null`, а не пятисотая.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        return null;
+      }
+      throw error;
     }
-
-    return id;
   }
 }

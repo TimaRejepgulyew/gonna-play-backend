@@ -1,0 +1,9 @@
+$kind: http-request
+name: /api/auth/me
+url: "{{baseUrl}}/api/auth/me"
+method: DELETE
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-auth-me 1.resources/examples
+order: 2000

@@ -3,6 +3,11 @@ import { getPrisma } from "@/config/prisma.js";
 import { errorCodes as appErrorCodes } from "@/constants/index.js";
 import { getAuthPayload } from "@/plugins/auth.js";
 import type { PaginationQuery } from "@/types/pagination.js";
+import {
+  hasPasswordField,
+  hasPrivilegedUserFields,
+  USER_PASSWORD_UPDATE_UNSUPPORTED,
+} from "@/user/user.model.js";
 import UserRepository from "@/user/user.repository.js";
 import PlayerRepository from "./player.repository.js";
 import {
@@ -20,6 +25,17 @@ export class PlayerController {
     const playerRepository = new PlayerRepository(prisma);
     const userRepository = new UserRepository(prisma);
     this.playerService = new PlayerService(playerRepository, userRepository, _server.log);
+
+    // Обходной вход: вложенный body.user уходит в тот же userRepository.updateUser.
+    // Гейт стоит до валидации по той же причине, что и на маршруте пользователя.
+    _server.addHook("preValidation", async (req, reply) => {
+      const body = req.body as { user?: unknown } | undefined;
+      if (req.method === "PUT" && hasPasswordField(body?.user)) {
+        return reply
+          .code(USER_PASSWORD_UPDATE_UNSUPPORTED.code)
+          .send(USER_PASSWORD_UPDATE_UNSUPPORTED);
+      }
+    });
   }
 
   getPlayerList(req: { query: PaginationQuery & PlayerListFilters }) {
@@ -57,8 +73,14 @@ export class PlayerController {
   }) {
     const id = Number(req.params.id);
     const payload = getAuthPayload(req);
+    const isAdmin = !!payload.roles?.includes("admin");
     const existing = await this.playerService.getPlayer(id);
-    if (existing.userId !== payload.sub && !payload.roles?.includes("admin")) {
+    if (existing.userId !== payload.sub && !isAdmin) {
+      return appErrorCodes.AUTH_FORBIDDEN;
+    }
+    // Вложенный body.user уходит в тот же userRepository.updateUser, поэтому
+    // привилегированные флаги закрываются тем же гейтом, что и прямой маршрут.
+    if (hasPrivilegedUserFields(req.body.user, isAdmin)) {
       return appErrorCodes.AUTH_FORBIDDEN;
     }
     return this.playerService.updatePlayer({ ...req.body, id });

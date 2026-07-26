@@ -1,0 +1,20 @@
+$kind: http-request
+name: /api/auth/telegram
+url: "{{baseUrl}}/api/auth/telegram"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": "<integer>",
+      "first_name": "<string>",
+      "auth_date": "<integer>",
+      "hash": "<string>",
+      "last_name": "<string>",
+      "username": "<string>",
+      "photo_url": "<string>"
+    }
+examples: ./.resources/-api-auth-telegram.resources/examples
+order: 1000

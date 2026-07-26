@@ -44,8 +44,6 @@ export interface CreateUserInput {
   country?: string;
   gender?: string;
   phone?: string;
-  telegramId?: string;
-  telegramUsername?: string;
 }
 
 export interface UpdateUserInput {
@@ -55,12 +53,9 @@ export interface UpdateUserInput {
   country?: string;
   gender?: string;
   phone?: string;
-  telegramId?: string;
-  telegramUsername?: string;
   isActive?: boolean;
   isEmailVerified?: boolean;
   isPhoneVerified?: boolean;
-  isTelegramVerified?: boolean;
 }
 
 export interface CreatePlayerInput {
@@ -80,17 +75,16 @@ export interface UpdatePlayerInput {
 // Response types for API operations
 export interface UserResponse {
   id: number;
-  email: string;
+  email: string | null;
   name: string | null;
   avatar: string | null;
-  birthDate: string;
+  birthDate: string | null;
   city: string | null;
   country: string | null;
   gender: string | null;
   isActive: boolean | null;
   isEmailVerified: boolean | null;
   isPhoneVerified: boolean | null;
-  isTelegramVerified: boolean | null;
   createdAt: Date;
   updatedAt: Date;
 }

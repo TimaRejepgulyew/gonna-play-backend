@@ -22,9 +22,7 @@ body:
         "country": "<string>",
         "firstName": "<string>",
         "gender": "<string>",
-        "lastName": "<string>",
-        "telegramId": "<string>",
-        "telegramUsername": "<string>"
+        "lastName": "<string>"
       }
     }
 examples: ./.resources/-api-player-.resources/examples

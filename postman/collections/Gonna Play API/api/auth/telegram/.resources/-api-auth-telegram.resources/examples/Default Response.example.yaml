@@ -1,0 +1,38 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/auth/telegram"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "id": "<integer>",
+        "first_name": "<string>",
+        "auth_date": "<integer>",
+        "hash": "<string>",
+        "last_name": "<string>",
+        "username": "<string>",
+        "photo_url": "<string>"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "user": {
+          "id": "<integer>",
+          "email": "<string>",
+          "name": "<string>",
+          "playerId": "<integer>",
+          "profileComplete": "<boolean>"
+        },
+        "accessToken": "<string>",
+        "refreshToken": "<string>"
+      }
+order: 1000

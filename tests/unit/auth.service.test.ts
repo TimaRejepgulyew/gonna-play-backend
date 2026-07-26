@@ -20,6 +20,19 @@ import { createFakeAuthRepository } from "./doubles/repositories.js";
 
 const PASSWORD = "correct-horse-battery";
 const EMAIL = "keeper@example.com";
+const BIRTH_DATE = "1990-05-01";
+
+// login дочитывает профиль ради `profileComplete`: `UserWithSecret` даты
+// рождения не несёт. Двойник отдаёт ровно то, что читает эта ветка.
+function createFakeUserRepository() {
+  const rows = new Map<number, { id: number; email?: string | null; birthDate?: string | null }>();
+  return {
+    rows,
+    async getUser(id: number) {
+      return rows.get(id) ?? null;
+    },
+  };
+}
 
 // Логгер сервису нужен только в ветках register (:107, :126); в login он не
 // вызывается ни разу, поэтому пустых методов достаточно.
@@ -32,11 +45,13 @@ const silentLogger = {
 
 describe("AuthService.login", () => {
   const authRepository = createFakeAuthRepository();
+  let userRepository: ReturnType<typeof createFakeUserRepository>;
   let signed: object[];
   let service: AuthService;
 
   beforeEach(() => {
     authRepository.reset();
+    userRepository = createFakeUserRepository();
     signed = [];
     const jwt: TokenSigner = {
       sign(payload) {
@@ -49,8 +64,7 @@ describe("AuthService.login", () => {
     };
     service = new AuthService(
       authRepository as unknown as AuthRepository,
-      // login не трогает эти два репозитория — они нужны только register/me.
-      {} as UserRepository,
+      userRepository as unknown as UserRepository,
       {} as PlayerRepository,
       jwt,
       silentLogger,
@@ -65,6 +79,7 @@ describe("AuthService.login", () => {
       roles: ["user"],
       playerId: 42,
     });
+    userRepository.rows.set(7, { id: 7, email: EMAIL, birthDate: BIRTH_DATE });
   });
 
   it("returns 401 for an unknown email instead of throwing", async () => {
@@ -112,6 +127,28 @@ describe("AuthService.login", () => {
     expect(signed).toEqual([]);
   });
 
+  // Беспарольный аккаунт (создан провайдером): `User.password` nullable, и
+  // парольный вход по нему обязан отвечать тем же 401, а не падать в 500.
+  it("returns 401 for a passwordless account without touching roles or the player id", async () => {
+    authRepository.users.seed({
+      id: 8,
+      email: "provider-only@example.com",
+      name: "Provider Only",
+      password: null,
+      roles: ["user"],
+    });
+
+    const result = await service.login({
+      email: "provider-only@example.com",
+      password: PASSWORD,
+    });
+
+    expect(result).toEqual(errorCodes.AUTH_INVALID_CREDENTIALS);
+    expect(authRepository.calls.getRoleNames).toEqual([]);
+    expect(authRepository.calls.getPlayerIdByUserId).toEqual([]);
+    expect(signed).toEqual([]);
+  });
+
   // Контрольный кейс: без него зелёные отказы выше могли бы объясняться просто
   // сломанной подменой репозитория. Заодно проводит прогон через issueTokens →
   // storeRefresh (src/auth/refreshStore.ts:32-45), то есть через set/sadd/expire
@@ -122,10 +159,21 @@ describe("AuthService.login", () => {
 
     expect(result).not.toMatchObject({ code: 401 });
     expect(result).toMatchObject({
-      user: { id: 7, email: EMAIL, name: "Keeper", playerId: 42 },
+      user: { id: 7, email: EMAIL, name: "Keeper", playerId: 42, profileComplete: true },
       accessToken: "token-1",
       refreshToken: "token-2",
     });
     expect(signed).toHaveLength(2);
+  });
+
+  // §9.5.4: признак — «есть почта и есть дата рождения». Пустая дата рождения
+  // обязана доехать до клиента как `profileComplete: false`, иначе единственный
+  // механизм дозаполнения анкеты молчит.
+  it("reports an unfinished profile when the birth date is missing", async () => {
+    userRepository.rows.set(7, { id: 7, email: EMAIL, birthDate: null });
+
+    const result = await service.login({ email: EMAIL, password: PASSWORD });
+
+    expect(result).toMatchObject({ user: { profileComplete: false } });
   });
 });

@@ -1,0 +1,31 @@
+$kind: http-example
+name: Default Response
+request:
+  url: "{{baseUrl}}/api/auth/google"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "idToken": "<string>"
+      }
+response:
+  statusCode: 202
+  statusText: Accepted
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": "link_required",
+        "ticket": "<string>",
+        "provider": "GOOGLE",
+        "email": "<string>",
+        "methods": [
+          "password"
+        ]
+      }
+order: 2000

@@ -1,0 +1,32 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/api/auth/google"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "idToken": "<string>"
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "user": {
+          "id": "<integer>",
+          "email": "<string>",
+          "name": "<string>",
+          "playerId": "<integer>",
+          "profileComplete": "<boolean>"
+        },
+        "accessToken": "<string>",
+        "refreshToken": "<string>"
+      }
+order: 1000

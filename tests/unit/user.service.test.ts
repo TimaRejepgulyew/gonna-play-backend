@@ -1,8 +1,15 @@
 import type { FastifyBaseLogger } from "fastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { errorCodes } from "@/constants/index.js";
+import { Prisma, type PrismaClient } from "@/types/prisma.js";
 import type { CreateUser, UpdateUser } from "@/user/types.js";
 import type { User } from "@/user/user.model.js";
+import {
+  hasPrivilegedUserFields,
+  PRIVILEGED_USER_FIELDS,
+  updateUserSchema,
+} from "@/user/user.model.js";
+import UserRepository from "@/user/user.repository.js";
 import UserService, { type IUserRepository } from "@/user/user.service.js";
 
 const logger = {
@@ -119,5 +126,101 @@ describe("UserService return-as-value convention", () => {
 
       expect(result).toMatchObject({ id: 1, email: "a@b.c" });
     });
+  });
+});
+
+function prismaDoubleWithDelete(deleteFn: () => Promise<unknown>): PrismaClient {
+  return { user: { delete: deleteFn } } as unknown as PrismaClient;
+}
+
+function knownRequestError(code: string): Error {
+  return new Prisma.PrismaClientKnownRequestError("boom", { code, clientVersion: "test" });
+}
+
+describe("UserRepository.deleteUser", () => {
+  it("returns null instead of throwing when Prisma reports P2025", async () => {
+    const repository = new UserRepository(
+      prismaDoubleWithDelete(() => Promise.reject(knownRequestError("P2025"))),
+    );
+
+    await expect(repository.deleteUser(404)).resolves.toBeNull();
+  });
+
+  it("re-throws any other Prisma error", async () => {
+    const other = knownRequestError("P2003");
+    const repository = new UserRepository(prismaDoubleWithDelete(() => Promise.reject(other)));
+
+    await expect(repository.deleteUser(1)).rejects.toBe(other);
+  });
+
+  it("returns the deleted id on happy path", async () => {
+    const repository = new UserRepository(prismaDoubleWithDelete(() => Promise.resolve({ id: 7 })));
+
+    await expect(repository.deleteUser(7)).resolves.toBe(7);
+  });
+});
+
+describe("UserRepository.updateUser", () => {
+  it("writes firstName and lastName when the provider import fills empty names", async () => {
+    const calls: { data: Record<string, unknown> }[] = [];
+    const prisma = {
+      user: {
+        update: (args: { data: Record<string, unknown> }) => {
+          calls.push(args);
+          return Promise.resolve({ id: 1, ...args.data });
+        },
+      },
+    } as unknown as PrismaClient;
+
+    const repository = new UserRepository(prisma);
+    const updated = await repository.updateUser({
+      id: 1,
+      firstName: "Ada",
+      lastName: "Lovelace",
+    } as UpdateUser);
+
+    expect(calls[0]?.data).toMatchObject({ firstName: "Ada", lastName: "Lovelace" });
+    expect(updated).toMatchObject({ firstName: "Ada", lastName: "Lovelace" });
+  });
+});
+
+describe("updateUserSchema", () => {
+  const properties = updateUserSchema.properties as Record<string, unknown>;
+
+  it("no longer accepts a password: changing it is a separate flow", () => {
+    expect(properties.password).toBeUndefined();
+  });
+
+  it("rejects unknown properties instead of dropping them silently", () => {
+    expect((updateUserSchema as { additionalProperties?: boolean }).additionalProperties).toBe(
+      false,
+    );
+  });
+
+  it("keeps the privileged field list in sync with the schema", () => {
+    for (const field of PRIVILEGED_USER_FIELDS) {
+      expect(properties[field]).toBeDefined();
+    }
+  });
+});
+
+describe("hasPrivilegedUserFields", () => {
+  it("reports every privileged field sent by a non-admin", () => {
+    for (const field of PRIVILEGED_USER_FIELDS) {
+      expect(hasPrivilegedUserFields({ [field]: true }, false)).toBe(true);
+    }
+  });
+
+  it("lets an admin send the same fields", () => {
+    expect(hasPrivilegedUserFields({ isEmailVerified: true }, true)).toBe(false);
+  });
+
+  it("ignores ordinary fields and a missing body", () => {
+    expect(hasPrivilegedUserFields({ name: "A" }, false)).toBe(false);
+    expect(hasPrivilegedUserFields(undefined, false)).toBe(false);
+  });
+
+  it("catches a field explicitly set to false: presence is what matters", () => {
+    expect(hasPrivilegedUserFields({ isActive: false }, false)).toBe(true);
   });
 });

@@ -21,7 +21,8 @@ export function hashToStorage(password: string): string {
 }
 
 // Verifies a plaintext password against a stored `salt:hash` value.
-export function verifyPassword(password: string, stored: string): boolean {
+// `stored` is null for provider-created accounts: they never pass this check.
+export function verifyPassword(password: string, stored: string | null): boolean {
   if (!stored?.includes(":")) {
     return false;
   }

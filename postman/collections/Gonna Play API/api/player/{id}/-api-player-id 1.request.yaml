@@ -27,12 +27,8 @@ body:
         "isActive": "<boolean>",
         "isEmailVerified": "<boolean>",
         "isPhoneVerified": "<boolean>",
-        "isTelegramVerified": "<boolean>",
         "name": "<string>",
-        "password": "<string>",
-        "phone": "<string>",
-        "telegramId": "<string>",
-        "telegramUsername": "<string>"
+        "phone": "<string>"
       }
     }
 examples: ./.resources/-api-player-id 1.resources/examples

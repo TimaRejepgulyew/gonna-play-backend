@@ -1,0 +1,13 @@
+$kind: http-request
+name: /api/auth/identities/:provider
+url: "{{baseUrl}}/api/auth/identities/:provider"
+method: POST
+pathVariables:
+  - key: provider
+    value: google
+    description: "(Required)  (This can only be one of google)"
+body:
+  type: text
+  content: ""
+examples: ./.resources/-api-auth-identities-provider.resources/examples
+order: 1000

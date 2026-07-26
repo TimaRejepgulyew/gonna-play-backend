@@ -29,6 +29,39 @@ export const errorCodes = {
     code: 403,
     message: "Player profile is required for this action",
   },
+  AUTH_PROVIDER_TOKEN_INVALID: {
+    code: 401,
+    message: "Provider token is invalid or expired",
+  },
+  AUTH_PROVIDER_NOT_CONFIGURED: {
+    code: 503,
+    message: "Login provider is not configured",
+  },
+  AUTH_PROVIDER_UNAVAILABLE: {
+    code: 503,
+    message: "Login provider is temporarily unavailable",
+  },
+  AUTH_IDENTITY_ALREADY_LINKED: {
+    code: 409,
+    message: "This account is already linked to another user",
+  },
+  AUTH_PROVIDER_ALREADY_LINKED: {
+    code: 409,
+    message: "This login provider is already linked to your account",
+  },
+  AUTH_IDENTITY_NOT_FOUND: { code: 404, message: "Login method is not linked" },
+  AUTH_LAST_LOGIN_METHOD: {
+    code: 409,
+    message: "Cannot unlink the only remaining login method",
+  },
+  AUTH_LINK_TICKET_INVALID: {
+    code: 401,
+    message: "Confirmation ticket is invalid or expired",
+  },
+  AUTH_LINK_PROOF_REQUIRED: {
+    code: 400,
+    message: "Password or another linked login method is required",
+  },
 
   // --- Location / Field ---
   LOCATION_NOT_FOUND: { code: 404, message: "Location not found" },

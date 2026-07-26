@@ -11,6 +11,9 @@
 // использующая `InMemoryStore`.
 
 import type { IAuthRepository, UserWithSecret } from "@/auth/auth.repository.js";
+import { AUTH_PROVIDER } from "@/auth/constant.js";
+import type { IdentityRecord, IIdentityRepository } from "@/auth/identity.repository.js";
+import type { ProviderProfile } from "@/auth/providers/types.js";
 import type Field from "@/field/field.model.js";
 import type { IFieldRepository } from "@/field/field.service.js";
 import { buildMeta } from "@/types/pagination.js";
@@ -113,8 +116,11 @@ export function resetStores(...stores: { reset(): void }[]): void {
 export interface AuthUserRow extends StoredEntity {
   email: string;
   name: string | null;
-  /** Хранимое значение вида `salt:hash` — как в колонке `User.password`. */
-  password: string;
+  /**
+   * Хранимое значение вида `salt:hash` — как в колонке `User.password`.
+   * `null` — беспарольный аккаунт: колонка тоже необязательная.
+   */
+  password: string | null;
   roles: string[];
   playerId?: number;
 }
@@ -170,6 +176,164 @@ export function createFakeAuthRepository(): FakeAuthRepository {
     async getPlayerIdByUserId(userId: number): Promise<number | undefined> {
       calls.getPlayerIdByUserId.push(userId);
       return users.findById(userId)?.playerId;
+    },
+  };
+}
+
+/** Строка хранилища привязок: `IdentityRecord` целиком плюс зашифрованный токен. */
+export interface IdentityRow extends StoredEntity {
+  userId: number;
+  provider: AUTH_PROVIDER;
+  providerUserId: string;
+  email: string | null;
+  username: string | null;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+  /** Ни в одну выборку списка не попадает — как и колонка в настоящем репозитории. */
+  refreshTokenEncrypted: string | null;
+}
+
+/** Аккаунт, заведённый провайдером: столько, сколько отдаёт `createUserWithIdentity`. */
+export interface IdentityUserRow extends StoredEntity {
+  email: string | null;
+  name: string | null;
+}
+
+export interface FakeIdentityRepository extends IIdentityRepository {
+  identities: InMemoryStore<IdentityRow>;
+  users: InMemoryStore<IdentityUserRow>;
+  calls: {
+    findByProvider: [AUTH_PROVIDER, string][];
+    listByUser: number[];
+    touchLastLogin: number[];
+    createUserWithIdentity: ProviderProfile[];
+    link: [number, ProviderProfile][];
+    unlink: [number, AUTH_PROVIDER][];
+    saveRefreshToken: [number, string][];
+    getAppleRefreshToken: number[];
+  };
+  reset(): void;
+}
+
+/**
+ * Поддельный `IdentityRepository` (`src/auth/identity.repository.ts`).
+ * Второй аргумент — общий журнал вызовов: тест, которому важен порядок между
+ * несколькими двойниками (например «отзыв Apple раньше удаления»), передаёт
+ * один и тот же массив каждому из них.
+ */
+export function createFakeIdentityRepository(trace: string[] = []): FakeIdentityRepository {
+  const identities = new InMemoryStore<IdentityRow>();
+  const users = new InMemoryStore<IdentityUserRow>();
+  const calls: FakeIdentityRepository["calls"] = {
+    findByProvider: [],
+    listByUser: [],
+    touchLastLogin: [],
+    createUserWithIdentity: [],
+    link: [],
+    unlink: [],
+    saveRefreshToken: [],
+    getAppleRefreshToken: [],
+  };
+
+  // Список привязок отдаётся без зашифрованного токена — тест не сможет
+  // случайно доказать поведение, которого у настоящего репозитория нет.
+  const toRecord = (row: IdentityRow): IdentityRecord => ({
+    id: row.id,
+    userId: row.userId,
+    provider: row.provider,
+    providerUserId: row.providerUserId,
+    email: row.email,
+    username: row.username,
+    lastLoginAt: row.lastLoginAt,
+    createdAt: row.createdAt,
+  });
+
+  const newRow = (userId: number, profile: ProviderProfile): NewRow<IdentityRow> => ({
+    userId,
+    provider: profile.provider,
+    providerUserId: profile.providerUserId,
+    email: profile.email ?? null,
+    username: profile.username ?? null,
+    lastLoginAt: new Date(),
+    createdAt: new Date(),
+    refreshTokenEncrypted: null,
+  });
+
+  const taken = (profile: ProviderProfile): boolean =>
+    identities.find(
+      (row) => row.provider === profile.provider && row.providerUserId === profile.providerUserId,
+    ) !== null;
+
+  return {
+    identities,
+    users,
+    calls,
+    reset() {
+      resetStores(identities, users);
+      for (const log of Object.values(calls)) log.length = 0;
+      trace.length = 0;
+    },
+
+    async findByProvider(provider, providerUserId) {
+      calls.findByProvider.push([provider, providerUserId]);
+      trace.push("findByProvider");
+      const row = identities.find(
+        (candidate) =>
+          candidate.provider === provider && candidate.providerUserId === providerUserId,
+      );
+      return row ? toRecord(row) : null;
+    },
+
+    async listByUser(userId) {
+      calls.listByUser.push(userId);
+      trace.push("listByUser");
+      return identities.filter((row) => row.userId === userId).map(toRecord);
+    },
+
+    async touchLastLogin(identityId) {
+      calls.touchLastLogin.push(identityId);
+      trace.push("touchLastLogin");
+      identities.update(identityId, { lastLoginAt: new Date() });
+    },
+
+    async createUserWithIdentity(profile) {
+      calls.createUserWithIdentity.push(profile);
+      trace.push("createUserWithIdentity");
+      if (taken(profile)) return null;
+      const user = users.insert({ email: profile.email ?? null, name: null });
+      const identity = identities.insert(newRow(user.id, profile));
+      return { user, identity: toRecord(identity) };
+    },
+
+    async link(userId, profile) {
+      calls.link.push([userId, profile]);
+      trace.push("link");
+      if (taken(profile)) return null;
+      return toRecord(identities.insert(newRow(userId, profile)));
+    },
+
+    async unlink(userId, provider) {
+      calls.unlink.push([userId, provider]);
+      trace.push("unlink");
+      const row = identities.find(
+        (candidate) => candidate.userId === userId && candidate.provider === provider,
+      );
+      return row ? identities.delete(row.id) : false;
+    },
+
+    async saveRefreshToken(identityId, refreshTokenEncrypted) {
+      calls.saveRefreshToken.push([identityId, refreshTokenEncrypted]);
+      trace.push("saveRefreshToken");
+      identities.update(identityId, { refreshTokenEncrypted });
+    },
+
+    async getAppleRefreshToken(userId) {
+      calls.getAppleRefreshToken.push(userId);
+      trace.push("getAppleRefreshToken");
+      const row = identities.find(
+        (candidate) => candidate.userId === userId && candidate.provider === AUTH_PROVIDER.Apple,
+      );
+      return row?.refreshTokenEncrypted ?? null;
     },
   };
 }

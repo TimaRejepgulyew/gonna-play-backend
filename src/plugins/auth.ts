@@ -6,7 +6,7 @@ import { errorCodes as appErrorCodes } from "@/constants/index.js";
 
 export interface JwtPayload {
   sub: number; // user.id
-  email: string;
+  email: string | null; // null for provider accounts without an email
   roles: string[]; // role names from UserRole -> Role.name
   playerId?: number; // id of the game profile, if any
   type?: "access" | "refresh";

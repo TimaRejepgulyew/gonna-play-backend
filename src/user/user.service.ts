@@ -43,9 +43,12 @@ export default class UserService {
 
   async createUser(user: CreateUser): Promise<User | ErrorResponse> {
     try {
-      const existingUser = await this.userRepository.getUserByEmail?.(user.email);
-      if (existingUser) {
-        return userErrorCodes.USER_EMAIL_DUPLICATED;
+      // Искать по пустой почте нельзя: `findUnique` не принимает `null`.
+      if (user.email) {
+        const existingUser = await this.userRepository.getUserByEmail?.(user.email);
+        if (existingUser) {
+          return userErrorCodes.USER_EMAIL_DUPLICATED;
+        }
       }
 
       const createdUser = await this.userRepository.createUser(user);

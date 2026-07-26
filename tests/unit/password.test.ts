@@ -44,4 +44,12 @@ describe("password hashing round trip", () => {
   ])("returns false for a malformed stored value (%s)", (_name, stored) => {
     expect(verifyPassword(password, stored)).toBe(false);
   });
+
+  // Беспарольный аккаунт (провайдерский вход): `User.password` теперь nullable,
+  // и login зовёт verifyPassword с null. Ранний guard (:25-27) обязан отсечь
+  // до split/pbkdf2Sync, иначе вход провайдерского пользователя даёт 500.
+  it("returns false for a null stored value instead of throwing", () => {
+    expect(() => verifyPassword(password, null)).not.toThrow();
+    expect(verifyPassword(password, null)).toBe(false);
+  });
 });

@@ -1,8 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // rootDir из основной конфигурации — ./src, а этот прогон включает ещё и
+    // tests/**, поэтому корень расширяется до корня репозитория: иначе tsc
+    // обрывается на TS6059 до самой проверки типов.
+    "rootDir": ".",
     "noEmit": true
   },
   "include": ["src/**/*.ts", "src/constants", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  // tests/unit/fixtures — заведомо некорректные исходники, которые тесты
+  // подают линтерам как входные данные, а не импортируют (так же исключены в
+  // biome.json:16); проверять их типы бессмысленно.
+  "exclude": ["node_modules", "dist", "tests/unit/fixtures"]
 }

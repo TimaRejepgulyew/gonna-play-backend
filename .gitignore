@@ -32,6 +32,10 @@ logs/
 # Testing
 coverage/
 
+# Postman: JSON-коллекции — артефакт `npm run postman:generate` из
+# postman/specs/openapi.json; в git живёт каталог-коллекция в формате YAML.
+postman/collections/*.postman_collection.json
+
 # Misc
 .cache/
 .tmp/

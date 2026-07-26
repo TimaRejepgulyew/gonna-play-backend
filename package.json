@@ -34,7 +34,7 @@
     "postman:collection": "openapi2postmanv2 -s postman/specs/openapi.json -o postman/collections/gonna-play.postman_collection.json -p -O folderStrategy=Paths,requestParametersResolution=Example,optimizeConversion=false",
     "postman:generate": "npm run postman:spec && npm run postman:collection && npm run postman:smoke",
     "postman:smoke": "node scripts/postman-smoke.mjs",
-    "postman:test": "newman run postman/collections/gonna-play.smoke.postman_collection.json -e postman/environments/local.postman_environment.json",
+    "postman:test": "npm run postman:collection && npm run postman:smoke && newman run postman/collections/gonna-play.smoke.postman_collection.json --env-var baseUrl=${BASE_URL:-http://localhost:3000}",
     "prepare": "[ -e .git ] && git config core.hooksPath .githooks || exit 0"
   },
   "repository": {

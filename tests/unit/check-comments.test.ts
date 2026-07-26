@@ -20,7 +20,6 @@ import {
   parseHookEvent,
   SCOPE_EXCLUDES,
   THRESHOLDS,
-  // @ts-expect-error — скрипт без типов, проверяется только рантайм-поведением.
 } from "../../scripts/check-comments.mjs";
 
 type Diagnostic = {

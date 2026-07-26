@@ -14,6 +14,8 @@
 
 - `User` — чтение при связывании профиля.
 
+При удалении пользователя — самим владельцем через `DELETE /api/auth/me` или администратором через `DELETE /api/user/:id` — профиль игрока не удаляется. Связь стоит на `onDelete: SetNull` (`prisma/schema.prisma:99`), поэтому `players.user_id` обнуляется, а строка остаётся жить вместе с именем, матчами, участиями, листом ожидания и рейтингами: история матчей не должна разваливаться из-за ухода одного участника. Обратная сторона очевидна и признаётся ограничением первой итерации — персональные данные в профиле, прежде всего имя, после удаления аккаунта сохраняются, и полной очистки задача самоудаления не делает. Подробнее — в срезе [auth](auth.md).
+
 ## Эндпоинты
 
 Маршруты в `src/player/player.routes.ts`, сейчас под префиксом `api/player` (перенос под `/v1` — за срезом [versioning](versioning.md)):
@@ -26,7 +28,7 @@
 
 ## Что сделать
 
-1. **Дефект безопасности (в первую очередь):** `getPlayer`, `getPlayerList`, `updatePlayer` подмешивают аккаунт как `include: { user: true }` без `select`/`omit` (`src/player/player.repository.ts:47, 78-81, 111`), из-за чего `GET /api/player/:id`, `GET /api/player/list` и `PUT /api/player/:id` отдают наружу `user.password` (хеш), `telegramId` и прочие поля аккаунта. Закрыть `omit: { password: true }` (как уже сделано в `src/user/user.repository.ts`) либо response-схемой, срезающей лишние поля.
+1. **Дефект безопасности (в первую очередь):** `getPlayer`, `getPlayerList`, `updatePlayer` подмешивают аккаунт как `include: { user: true }` без `select`/`omit` (`src/player/player.repository.ts:47, 78-81, 111`), из-за чего `GET /api/player/:id`, `GET /api/player/list` и `PUT /api/player/:id` отдают наружу `user.password` (хеш), `email`, `phone` и прочие поля аккаунта. Закрыть `omit: { password: true }` (как уже сделано в `src/user/user.repository.ts`) либо response-схемой, срезающей лишние поля.
 2. Перенос маршрутов под `/v1` — вместе со срезом `versioning`.
 3. Свести обработку ошибок к единому виду — после появления `errorHandler` из среза `auth`.
 

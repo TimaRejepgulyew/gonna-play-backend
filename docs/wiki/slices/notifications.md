@@ -13,7 +13,7 @@
 
 ## Касается
 
-- `User` — получатель; для Telegram-канала нужна привязка Telegram — колонки `telegramId` / `telegramUsername` на `User` (отдельной таблицы `AuthIdentity` нет, см. [auth](auth.md)).
+- `User` — получатель; ключ доставки для Telegram-канала лежит не на нём. Привязка Telegram живёт отдельной строкой `AuthIdentity` с `provider = TELEGRAM`, и адресом доставки служит её `providerUserId` (`prisma/schema.prisma:49-71`). Колонок `telegramId` / `telegramUsername` на `User` больше нет — они сняты вместе с переездом способов входа в `AuthIdentity`, см. [auth](auth.md).
 - `Match` / `MatchParticipant` — источники событий (напоминание, заполнение, разбивка, продвижение из листа ожидания, отмена) — чтение.
 
 ## Эндпоинты (под префиксом `/v1`)
